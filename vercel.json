@@ -1,8 +1,10 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "builds": [
     {
-      "src": "package.json",
+      "src": "dist/src/app.js",
       "use": "@vercel/node"
     }
   ],
