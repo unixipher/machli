@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createManager, CreateDriver } from '../controllers/usercontroller.js';
+import { CreateManager, CreateDriver } from '../controllers/usercontroller.js';
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.get("/", (req, res) => {
         timestamp: Date.now()
     });
 });
-router.post("/create-manager", createManager);
+router.post("/create-manager", CreateManager);
 router.post("/create-driver", CreateDriver);
 
 export default router;

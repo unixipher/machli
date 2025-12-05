@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Driver {
+  id        Int            @id @default(autoincrement())
+  name      String
+  phone     String         @unique(map: "Driver_phone_unique")
+  category  DriverCategory
+  createdAt DateTime       @default(now()) @db.Timestamp(6)
+  updatedAt DateTime       @default(now()) @db.Timestamp(6)
+  token     String         @unique(map: "Driver_token_unique")
+  Order     Order[]
+}
+
+model Manager {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String   @unique(map: "Manager_phone_unique")
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+  token     String   @unique(map: "Manager_token_unique")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  shopOwnerId Int
+  driverId    Int
+  productId   Int
+  managerId   Int
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime    @default(now()) @db.Timestamp(6)
+  Driver      Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "Order_driverId_Driver_id_fk")
+  ShopOwner   ShopOwner   @relation(fields: [shopOwnerId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "Order_shopOwnerId_ShopOwner_id_fk")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  price       Float    @db.Real
+  metadata    Json?    @db.Json
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @db.Timestamp(6)
+}
+
+model ShopOwner {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String   @unique(map: "ShopOwner_phone_unique")
+  geoLat    Float    @db.Real
+  geoLng    Float    @db.Real
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @default(now()) @db.Timestamp(6)
+  token     String   @unique(map: "ShopOwner_token_unique")
+  Order     Order[]
+}
+
+enum DriverCategory {
+  LARGE
+  SMALL
+}
+
+enum OrderStatus {
+  CREATED
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}

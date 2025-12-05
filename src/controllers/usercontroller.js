@@ -1,29 +1,50 @@
-import db from '../helper/db.js';
-import { manager, driver } from '../db/schema.js';
+import { prisma } from './../helper/prisma.js'
 import { error } from '../middleware/middleware.js';
 
-export const createManager = async (req, res) => {
+export const CreateManager = async (req, res) => {
     try {
         const { name, phone, token } = req.body
-        const newManager = await db.insert(manager).values({
-            name,
-            phone,
-            token
-        }).returning();
-        res.status(201).json(newManager[0]);
+        const newManager = await prisma.manager.create({
+            data: {
+                name,
+                phone,
+                token
+            }
+        });
+        res.status(201).json(newManager);
     } catch (err) {
         error(err, res);
     }
 };
 export const CreateDriver = async (req, res) => {
     try {
-        const { name, phone, token } = req.body
-        const newDriver = await db.insert(driver).values({
-            name,
-            phone,
-            token
-        }).returning();
-        res.status(201).json(newDriver[0]);
+        const { name, phone, token, category } = req.body
+        const newDriver = await prisma.driver.create({
+            data: {
+                name,
+                phone,
+                token,
+                category
+            }
+        });
+        res.status(201).json(newDriver);
+    } catch (err) {
+        error(err, res);
+    }
+};
+export const CreateShopOwner = async (req, res) => {
+    try {
+        const { name, phone, token, geoLat, geoLng } = req.body
+        const newShopOwner = await prisma.shopOwner.create({
+            data: {
+                name,
+                phone,
+                token,
+                geoLat,
+                geoLng
+            }
+        });
+        res.status(201).json(newShopOwner);
     } catch (err) {
         error(err, res);
     }
