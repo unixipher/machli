@@ -11,8 +11,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "allowJs": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./"
   },
-  "include": ["src/**/*", "generated/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src/**/*", "generated/**/*", "prisma.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }
