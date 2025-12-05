@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx src/app.js",
     "start": "tsx src/app.js",
+    "build": "prisma generate",
+    "postinstall": "prisma generate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
