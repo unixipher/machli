@@ -1,0 +1,5 @@
+{
+  "exec": "tsx src/app.js",
+  "ext": "js,json,ts",
+  "ignore": ["node_modules", "dist"]
+}
