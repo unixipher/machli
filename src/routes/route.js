@@ -1,11 +1,8 @@
 import { Router } from "express";
-import { CreateManager, CreateDriver, CreateShopOwner } from '../controllers/auth/create/createUserController.js';
-import { UpdateManager, UpdateDriver, UpdateShopOwner } from '../controllers/auth/update/updateUserController.js';
 import { authenticateManager, authenticateDriver, authenticateShopOwner } from '../middleware/middleware.js';
-import { CreateProduct } from '../controllers/manager/product/create/createProduct.js';
-import { getDriver, getManager, getShopOwner } from "../controllers/auth/get/getUserController.js";
-import { UpdateProduct } from "../controllers/manager/product/update/updateProduct.js";
-import { GetProduct } from "../controllers/manager/product/get/getProduct.js";
+import { CreateDriver, CreateManager, CreateShopOwner, getDriver, getManager, getShopOwner, UpdateDriver, UpdateManager, UpdateShopOwner } from "../controllers/auth/authController.js";
+import { CreateProduct, UpdateProduct, GetProduct } from "../controllers/product/productController.js";
+import { CreateOrder, UpdateOrder, GetOrder, CancelOrder } from "../controllers/order/orderController.js";
 
 const router = Router();
 
@@ -33,5 +30,11 @@ router.get("/get-shopowner/:id", authenticateShopOwner, getShopOwner);
 router.post("/create-product", authenticateManager, CreateProduct);
 router.put("/update-product/:id", authenticateManager, UpdateProduct);
 router.get("/get-product/:id", authenticateManager, GetProduct);
+//Order Management
+router.post("/create-order", authenticateManager, CreateOrder);
+router.put("/update-order/:id", authenticateDriver, UpdateOrder);
+router.get("/get-order/:id", authenticateManager, GetOrder);
+router.get("/get-order/:id", authenticateShopOwner, GetOrder);
+router.delete("/cancel-order/:id", authenticateManager, CancelOrder);
 
 export default router;

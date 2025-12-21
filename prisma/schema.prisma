@@ -33,6 +33,7 @@ model Order {
   driverId    Int
   productId   Int
   managerId   Int
+  quantity    Int
   metadata    Json?       @db.Json
   status      OrderStatus @default(PENDING)
   createdAt   DateTime    @default(now()) @db.Timestamp(6)
@@ -47,9 +48,9 @@ model Product {
   description String
   price       Float    @db.Real
   metadata    Json?    @db.Json
-  quantity    Int
   createdAt   DateTime @default(now()) @db.Timestamp(6)
   updatedAt   DateTime @default(now()) @db.Timestamp(6)
+  quantity    Int
 }
 
 model ShopOwner {
