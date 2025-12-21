@@ -1,4 +1,6 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config();
+
 import express, { json, urlencoded } from "express";
 import { createServer } from "http";
 import cors from "cors";
