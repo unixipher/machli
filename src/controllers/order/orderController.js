@@ -1,5 +1,5 @@
-import { prisma } from './../../../../helper/prisma.js'
-import { error } from '../../../../middleware/middleware.js';
+import { prisma } from '../../helper/prisma.js'
+import { error } from '../../middleware/middleware.js';
 import { ordermetadataschema } from '../../schema/schema.js';
 
 export const CreateOrder = async (req, res) => {
