@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/app.js",
     "start": "node dist/src/app.js",
-    "build": "npx prisma generate && tsc",
+    "build": "npx prisma generate && tsc", 
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
