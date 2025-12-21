@@ -1,6 +1,6 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
-exports.ordermetadataschema = z.object({
+export const ordermetadataschema = z.object({
     locations: z.array(z.object({
         latitude: z.number(),
         longitude: z.number(),
