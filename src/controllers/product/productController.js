@@ -55,3 +55,11 @@ export const UpdateProduct = async (req, res) => {
         error(err, res);
     }
 };
+export const GetAllProducts = async (req, res) => {
+    try {
+        const products = await prisma.product.findMany();
+        res.status(200).json(products);
+    } catch (err) {
+        error(err, res);
+    }
+};

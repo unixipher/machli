@@ -108,3 +108,11 @@ export const CancelOrder = async (req, res) => {
         error(err, res);
     }
 };
+export const GetAllOrders = async (req, res) => {
+    try {
+        const orders = await prisma.order.findMany();
+        res.status(200).json(orders);
+    } catch (err) {
+        error(err, res);
+    }
+};
