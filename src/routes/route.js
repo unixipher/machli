@@ -19,13 +19,13 @@ router.post("/create-manager", CreateManager);
 router.post("/create-driver", CreateDriver);
 router.post("/create-shopowner", CreateShopOwner);
 //User Update (Protected Route)
-router.put("/update-manager/:id", authenticateManager, UpdateManager);
-router.put("/update-driver/:id", authenticateDriver, UpdateDriver);
-router.put("/update-shopowner/:id", authenticateShopOwner, UpdateShopOwner);
+router.put("/update-manager", authenticateManager, UpdateManager);
+router.put("/update-driver", authenticateDriver, UpdateDriver);
+router.put("/update-shopowner", authenticateShopOwner, UpdateShopOwner);
 //Get User Details (Protected Route)
-router.get("/get-manager/:id", authenticateManager, getManager);
-router.get("/get-driver/:id", authenticateDriver, getDriver);
-router.get("/get-shopowner/:id", authenticateShopOwner, getShopOwner);
+router.get("/get-manager", authenticateManager, getManager);
+router.get("/get-driver", authenticateDriver, getDriver);
+router.get("/get-shopowner", authenticateShopOwner, getShopOwner);
 //Product Creation (Protected Route)
 router.post("/create-product", authenticateManager, CreateProduct);
 router.put("/update-product/:id", authenticateManager, UpdateProduct);
