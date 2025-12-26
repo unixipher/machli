@@ -52,9 +52,10 @@ export const CreateShopOwner = async (req, res) => {
 
 export const getManager = async (req, res) => {
     try {
-        const { id } = req.params;
+        const token = req.manager.token;
         const manager = await prisma.manager.findUnique({
-            where: { id: parseInt(id) }
+            where: { token: token },
+            select: { id: true, name: true, phone: true, token: true }
         });
         if (!manager) {
             return res.status(404).json({
