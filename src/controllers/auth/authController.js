@@ -72,9 +72,10 @@ export const getManager = async (req, res) => {
 
 export const getDriver = async (req, res) => {
     try {
-        const { id } = req.params;
+        const token = req.driver.token;
         const driver = await prisma.driver.findUnique({
-            where: { id: parseInt(id) }
+            where: { token: token },
+            select: { id: true, name: true, phone: true, token: true, category: true }
         });
         if (!driver) {
             return res.status(404).json({
@@ -93,7 +94,8 @@ export const getShopOwner = async (req, res) => {
     try {
         const { id } = req.params;
         const shopOwner = await prisma.shopOwner.findUnique({
-            where: { id: parseInt(id) }
+            where: { token: token },
+            select: { id: true, name: true, phone: true, token: true, geoLat: true, geoLng: true }
         });
         if (!shopOwner) {
             return res.status(404).json({
@@ -109,11 +111,11 @@ export const getShopOwner = async (req, res) => {
 };
 export const UpdateManager = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { name, phone, token } = req.body;
+        const token = req.manager.token;
+        const { name, phone, token: newToken } = req.body;
         const updatedManager = await prisma.manager.update({
-            where: { id: parseInt(id) },
-            data: { name, phone, token }
+            where: { token: token },
+            data: { name, phone, token: newToken }
         });
         res.status(200).json(updatedManager);
     } catch (err) {
@@ -122,11 +124,11 @@ export const UpdateManager = async (req, res) => {
 };
 export const UpdateDriver = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { name, phone, token, category } = req.body;
+        const token = req.driver.token;
+        const { name, phone, token: newToken, category } = req.body;
         const updatedDriver = await prisma.driver.update({
-            where: { id: parseInt(id) },
-            data: { name, phone, token, category }
+            where: { token: token },
+            data: { name, phone, token: newToken, category }
         });
         res.status(200).json(updatedDriver);
     } catch (err) {
@@ -135,11 +137,11 @@ export const UpdateDriver = async (req, res) => {
 };
 export const UpdateShopOwner = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { name, phone, token, geoLat, geoLng } = req.body;
+        const token = req.shopOwner.token;
+        const { name, phone, token: newToken, geoLat, geoLng } = req.body;
         const updatedShopOwner = await prisma.shopOwner.update({
-            where: { id: parseInt(id) },
-            data: { name, phone, token, geoLat, geoLng }
+            where: { token: token },
+            data: { name, phone, token: newToken, geoLat, geoLng }
         });
         res.status(200).json(updatedShopOwner);
     } catch (err) {
