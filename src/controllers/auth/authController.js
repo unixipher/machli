@@ -148,3 +148,25 @@ export const UpdateShopOwner = async (req, res) => {
         error(err, res);
     }
 };
+
+export const getAllShopOwners = async (req, res) => {
+    try {
+        const shopOwners = await prisma.shopOwner.findMany({
+            select: { id: true, name: true, phone: true, token: true, geoLat: true, geoLng: true }
+        });
+        res.status(200).json(shopOwners);
+    } catch (err) {
+        error(err, res);
+    }
+};
+
+export const getAllDrivers = async (req, res) => {
+    try {
+        const drivers = await prisma.driver.findMany({
+            select: { id: true, name: true, phone: true, token: true, category: true }
+        });
+        res.status(200).json(drivers);
+    } catch (err) {
+        error(err, res);
+    }
+};

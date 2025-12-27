@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authenticateManager, authenticateDriver, authenticateShopOwner } from '../middleware/middleware.js';
-import { CreateDriver, CreateManager, CreateShopOwner, getDriver, getManager, getShopOwner, UpdateDriver, UpdateManager, UpdateShopOwner } from "../controllers/auth/authController.js";
+import { CreateDriver, CreateManager, CreateShopOwner, getDriver, getManager, getShopOwner, UpdateDriver, UpdateManager, UpdateShopOwner, getAllShopOwners, getAllDrivers } from "../controllers/auth/authController.js";
 import { CreateProduct, UpdateProduct, GetProduct, GetAllProducts } from "../controllers/product/productController.js";
 import { CreateOrder, UpdateOrder, GetOrder, CancelOrder, GetAllOrders } from "../controllers/order/orderController.js";
 
@@ -26,6 +26,8 @@ router.put("/update-shopowner", authenticateShopOwner, UpdateShopOwner);
 router.get("/get-manager", authenticateManager, getManager);
 router.get("/get-driver", authenticateDriver, getDriver);
 router.get("/get-shopowner", authenticateShopOwner, getShopOwner);
+router.get("/get-all-shopowners", authenticateManager, getAllShopOwners);
+router.get("/get-all-drivers", authenticateManager, getAllDrivers);
 //Product Creation (Protected Route)
 router.post("/create-product", authenticateManager, CreateProduct);
 router.put("/update-product/:id", authenticateManager, UpdateProduct);
