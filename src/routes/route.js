@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { authenticateManager, authenticateDriver, authenticateShopOwner } from '../middleware/middleware.js';
-import { CreateDriver, CreateManager, CreateShopOwner, getDriver, getManager, getShopOwner, UpdateDriver, UpdateManager, UpdateShopOwner, getAllShopOwners, getAllDrivers } from "../controllers/auth/authController.js";
-import { CreateProduct, UpdateProduct, GetProduct, GetAllProducts } from "../controllers/product/productController.js";
-import { CreateOrder, UpdateOrder, GetOrder, CancelOrder, GetAllOrders } from "../controllers/order/orderController.js";
-
+import * as authController from "../controllers/authController.js";
+import * as orderController from "../controllers/orderController.js";
+import * as productController from "../controllers/productController.js";
+import * as vehicleController from "../controllers/vehicleController.js";
+import { authenticateIntermediateHubManager, authenticateMainHubManager, authenticateMainDriverManager, authenticateIntermediateDriverManager } from "../middleware/middleware.js";
 const router = Router();
 
 router.get("/", (req, res) => {
@@ -14,31 +14,28 @@ router.get("/", (req, res) => {
         timestamp: Date.now()
     });
 });
-//User Creation
-router.post("/create-manager", CreateManager);
-router.post("/create-driver", CreateDriver);
-router.post("/create-shopowner", CreateShopOwner);
-//User Update (Protected Route)
-router.put("/update-manager", authenticateManager, UpdateManager);
-router.put("/update-driver", authenticateDriver, UpdateDriver);
-router.put("/update-shopowner", authenticateShopOwner, UpdateShopOwner);
-//Get User Details (Protected Route)
-router.get("/get-manager", authenticateManager, getManager);
-router.get("/get-driver", authenticateDriver, getDriver);
-router.get("/get-shopowner", authenticateShopOwner, getShopOwner);
-router.get("/get-all-shopowners", authenticateManager, getAllShopOwners);
-router.get("/get-all-drivers", authenticateManager, getAllDrivers);
-//Product Creation (Protected Route)
-router.post("/create-product", authenticateManager, CreateProduct);
-router.put("/update-product/:id", authenticateManager, UpdateProduct);
-router.get("/get-product/:id", authenticateManager, GetProduct);
-router.get("/get-all-products", authenticateManager, GetAllProducts);
-//Order Management
-router.post("/create-order", authenticateManager, CreateOrder);
-router.put("/update-order/:id", authenticateDriver, UpdateOrder);
-router.get("/get-order/:id", authenticateManager, GetOrder);
-router.get("/get-order/:id", authenticateShopOwner, GetOrder);
-router.get("/get-all-orders", authenticateManager, GetAllOrders);
-router.delete("/cancel-order/:id", authenticateManager, CancelOrder);
+router.post("/createHubManager", authController.createHubManager)
+router.post("/createVehicle", vehicleController.createVehicle)
+router.post("/createDriverManager", authController.createDriverManager)
 
+//Intermediate Hub Manager Routes
+router.post("/createShop", authenticateIntermediateHubManager, orderController.createShop)
+router.post("/createOrder", authenticateIntermediateHubManager, orderController.createOrder)
+router.get("/getOrdersForIntermediateHubManager", authenticateIntermediateHubManager, orderController.getOrdersForIntermediateHubManager)
+router.put("/updateOrderForIntermediateHubManager", authenticateIntermediateHubManager, orderController.updateOrderForIntermediateHubManager)
+router.post("/createProduct", authenticateIntermediateHubManager, productController.createProduct)
+router.post("/allocateVehicletoOrderViaIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.allocateVehicletoOrder)
+router.post("/allocateDriverManagertoVehicleViaIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.allocateDriverManagertoVehicle)
+
+//Main Hub Manager Routes
+router.get("/getOrdersForMainHubManager", authenticateMainHubManager, orderController.getOrdersForMainHubManager)
+router.put("/updateOrderForMainHubManager", authenticateMainHubManager, orderController.updateOrderForMainHubManager)
+router.post("/allocateVehicletoOrderViaMainHubManager", authenticateMainHubManager, vehicleController.allocateVehicletoOrder)
+router.post("/allocateDriverManagertoVehicleViaMainHubManager", authenticateMainHubManager, vehicleController.allocateDriverManagertoVehicle)
+
+
+//Main Driver Manager Routes
+router.get("/getOrdersForMainDriverManager", authenticateMainDriverManager, orderController.getOrdersForMainDriverManager)
+//Intermediate Driver Manager Routes
+router.get("/getOrdersForIntermediateDriverManager", authenticateIntermediateDriverManager, orderController.getOrdersForIntermediateDriverManager)
 export default router;
