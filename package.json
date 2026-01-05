@@ -4,9 +4,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx src/app.js",
-    "start": "node dist/src/app.js",
-    "build": "tsc",
+    "dev": "node src/app.js",
+    "start": "node src/app.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
