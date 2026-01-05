@@ -3,9 +3,9 @@ import { hubManager, driverManager } from '../drizzle/schema.js';
 import { error } from '../middleware/middleware.js';
 
 export const createHubManager = async (req, res) => {
-    const { name, email, phone, token, hubmanagerCategory, mainHubManagerId } = req.body;
-    if (!name || !email || !phone || !token || !hubmanagerCategory) {
-        return error('name, email, phone, token, and hubmanagerCategory are required', res, 400);
+    const { name, email, phone, token, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng } = req.body;
+    if (!name || !email || !phone || !token || !hubmanagerCategory || !address || !geoLat || !geoLng) {
+        return error('name, email, phone, token, hubmanagerCategory, address, geoLat, and geoLng are required', res, 400);
     }
     if (hubmanagerCategory === 'intermediate' && !mainHubManagerId) {
         return error('mainHubManagerId is required for intermediate hub managers', res, 400);
@@ -21,6 +21,9 @@ export const createHubManager = async (req, res) => {
                 email,
                 phone,
                 token,
+                address,
+                geoLat,
+                geoLng,
                 hubmanagerCategory,
                 mainHubManagerId: mainHubManagerId || null
             })
@@ -36,9 +39,9 @@ export const createHubManager = async (req, res) => {
 }
 
 export const createDriverManager = async (req, res) => {
-    const { name, email, phone, token, category } = req.body;
-    if (!name || !email || !phone || !token || !category) {
-        return error('name, email, phone, token, and category are required', res, 400);
+    const { name, email, phone, token, category, address, geoLat, geoLng } = req.body;
+    if (!name || !email || !phone || !token || !category || !address || !geoLat || !geoLng) {
+        return error('name, email, phone, token, category, address, geoLat, and geoLng are required', res, 400);
     }
     try {
         const [newDriverManager] = await drizzle
@@ -48,6 +51,9 @@ export const createDriverManager = async (req, res) => {
                 email,
                 phone,
                 token,
+                address,
+                geoLat,
+                geoLng,
                 category,
                 status: 'available'
             })
