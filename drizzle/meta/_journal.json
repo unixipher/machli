@@ -57,6 +57,27 @@
       "when": 1767624395137,
       "tag": "0007_sticky_winter_soldier",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767712234360,
+      "tag": "0008_breezy_bill_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1767712383975,
+      "tag": "0009_even_queen_noir",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1767713036589,
+      "tag": "0010_calm_slyde",
+      "breakpoints": true
     }
   ]
 }

@@ -89,7 +89,7 @@ export const createOrder = async (req, res) => {
     }
 }
 
-export const getOrdersForIntermediateHubManager = async (req, res) => {
+export const getAllOrdersForIntermediateHubManager = async (req, res) => {
     try {
         const manager = req.manager;
         let orders;
@@ -126,7 +126,7 @@ export const getOrdersForIntermediateHubManager = async (req, res) => {
     }
 }
 
-export const getOrdersForMainHubManager = async (req, res) => {
+export const getAllOrdersForMainHubManager = async (req, res) => {
     try {
         const manager = req.manager;
 
@@ -326,6 +326,88 @@ export const getOrdersForIntermediateDriverManager = async (req, res) => {
         res.status(200).json({
             success: true,
             data: orders,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
+
+export const getAllShopsUnderIntermediateHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const shops = await drizzle
+            .select()
+            .from(shop)
+            .where(eq(shop.hubmanagerId, manager.id));
+
+        res.status(200).json({
+            success: true,
+            data: shops,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
+
+export const getAllDriverManagerUnderIntermediateHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const drivers = await drizzle
+            .select()
+            .from(driverManager)
+            .where(eq(driverManager.hubmanagerId, manager.id));
+
+        res.status(200).json({
+            success: true,
+            data: drivers,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
+
+export const getAllDriverManagerUnderMainHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const intermediateManagers = await drizzle
+            .select({ id: hubManager.id })
+            .from(hubManager)
+            .where(eq(hubManager.mainHubManagerId, manager.id));
+
+        const intermediateManagerIds = intermediateManagers.map(m => m.id);
+
+        let drivers = [];
+        if (intermediateManagerIds.length > 0) {
+            drivers = await drizzle
+                .select()
+                .from(driverManager)
+                .where(inArray(driverManager.hubmanagerId, intermediateManagerIds));
+        }
+        
+        res.status(200).json({
+            success: true,
+            data: drivers,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
+
+export const getAllIntermediateHubManagerUnderMainHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const intermediateManagers = await drizzle
+            .select()
+            .from(hubManager)
+            .where(eq(hubManager.mainHubManagerId, manager.id));
+
+        res.status(200).json({
+            success: true,
+            data: intermediateManagers,
         });
     } catch (err) {
         error(err.message, res);

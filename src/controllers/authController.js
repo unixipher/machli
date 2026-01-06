@@ -39,9 +39,9 @@ export const createHubManager = async (req, res) => {
 }
 
 export const createDriverManager = async (req, res) => {
-    const { name, email, phone, token, category, address, geoLat, geoLng } = req.body;
-    if (!name || !email || !phone || !token || !category || !address || !geoLat || !geoLng) {
-        return error('name, email, phone, token, category, address, geoLat, and geoLng are required', res, 400);
+    const { name, email, phone, token, category, address, geoLat, geoLng, hubmanagerId } = req.body;
+    if (!name || !email || !phone || !token || !category || !address || !geoLat || !geoLng || !hubmanagerId) {
+        return error('name, email, phone, token, category, address, geoLat, geoLng, and hubmanagerId are required', res, 400);
     }
     try {
         const [newDriverManager] = await drizzle
@@ -50,6 +50,7 @@ export const createDriverManager = async (req, res) => {
                 name,
                 email,
                 phone,
+                hubmanagerId,
                 token,
                 address,
                 geoLat,
