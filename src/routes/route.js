@@ -20,6 +20,7 @@ router.post("/createDriverManager", authController.createDriverManager)
 
 //Intermediate Hub Manager Routes
 router.post("/createShop", authenticateIntermediateHubManager, orderController.createShop)
+router.get("/getIntermediateHubManagerProfileInfo", authenticateIntermediateHubManager, authController.getHubManagerProfileInfo)
 router.post("/createOrder", authenticateIntermediateHubManager, orderController.createOrder)
 router.get("/getAllShopsUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllShopsUnderIntermediateHubManager)
 router.get("/getAllDriverManagerUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllDriverManagerUnderIntermediateHubManager)
@@ -31,6 +32,7 @@ router.post("/allocateDriverManagertoVehicleViaIntermediateHubManager", authenti
 
 //Main Hub Manager Routes
 router.get("/getAllOrdersForMainHubManager", authenticateMainHubManager, orderController.getAllOrdersForMainHubManager)
+router.get("/getMainHubManagerProfileInfo", authenticateMainHubManager, authController.getHubManagerProfileInfo)
 router.get("/getAllDriverManagerUnderMainHubManager", authenticateMainHubManager, orderController.getAllDriverManagerUnderMainHubManager)
 router.get("/getAllIntermediateHubManagerUnderMainHubManager", authenticateMainHubManager, orderController.getAllIntermediateHubManagerUnderMainHubManager)
 router.put("/updateOrderForMainHubManager", authenticateMainHubManager, orderController.updateOrderForMainHubManager)

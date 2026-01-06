@@ -68,3 +68,27 @@ export const createDriverManager = async (req, res) => {
         error(err.message, res);
     }
 }
+
+export const getHubManagerProfileInfo = async (req, res) => {
+    try {
+        const manager = req.manager;
+        res.status(200).json({
+            success: true,
+            data: manager
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
+
+export const getDriverManagerProfileInfo = async (req, res) => {
+    try {
+        const manager = req.manager;
+        res.status(200).json({
+            success: true,
+            data: manager
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
