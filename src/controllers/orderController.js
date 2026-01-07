@@ -415,3 +415,21 @@ export const getAllIntermediateHubManagerUnderMainHubManager = async (req, res) 
         error(err.message, res);
     }
 }
+
+export const getAllProductsUnderIntermediateHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const products = await drizzle
+            .select()
+            .from(product)
+            .where(eq(product.hubmanagerId, manager.id));
+
+        res.status(200).json({
+            success: true,
+            data: products,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}

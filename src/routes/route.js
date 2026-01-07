@@ -25,6 +25,7 @@ router.post("/createOrder", authenticateIntermediateHubManager, orderController.
 router.get("/getAllShopsUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllShopsUnderIntermediateHubManager)
 router.get("/getAllDriverManagerUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllDriverManagerUnderIntermediateHubManager)
 router.get("/getAllOrdersForIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllOrdersForIntermediateHubManager)
+router.get("/getAllProductsUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllProductsUnderIntermediateHubManager)
 router.put("/updateOrderForIntermediateHubManager", authenticateIntermediateHubManager, orderController.updateOrderForIntermediateHubManager)
 router.post("/createProduct", authenticateIntermediateHubManager, productController.createProduct)
 router.post("/allocateVehicletoOrderViaIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.allocateVehicletoOrder)
