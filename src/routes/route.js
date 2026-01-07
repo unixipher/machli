@@ -14,12 +14,21 @@ router.get("/", (req, res) => {
         timestamp: Date.now()
     });
 });
+
+// Authentication Routes
+router.post("/auth/request-otp", authController.requestOTP)
+router.post("/auth/verify-otp", authController.verifyOTP)
+
+// Profile Creation Routes (requires verified OTP)
 router.post("/createHubManager", authController.createHubManager)
-router.post("/createVehicle", vehicleController.createVehicle)
 router.post("/createDriverManager", authController.createDriverManager)
+
+// Public Routes
+router.get("/getAllHubManagers", authController.getAllHubManagers)
 
 //Intermediate Hub Manager Routes
 router.post("/createShop", authenticateIntermediateHubManager, orderController.createShop)
+router.post("/createVehicleForIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.createVehicle)
 router.get("/getIntermediateHubManagerProfileInfo", authenticateIntermediateHubManager, authController.getHubManagerProfileInfo)
 router.post("/createOrder", authenticateIntermediateHubManager, orderController.createOrder)
 router.get("/getAllShopsUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllShopsUnderIntermediateHubManager)
@@ -34,6 +43,7 @@ router.post("/allocateDriverManagertoVehicleViaIntermediateHubManager", authenti
 //Main Hub Manager Routes
 router.get("/getAllOrdersForMainHubManager", authenticateMainHubManager, orderController.getAllOrdersForMainHubManager)
 router.get("/getMainHubManagerProfileInfo", authenticateMainHubManager, authController.getHubManagerProfileInfo)
+router.post("/createVehicleForMainHubManager", authenticateMainHubManager, vehicleController.createVehicle)
 router.get("/getAllDriverManagerUnderMainHubManager", authenticateMainHubManager, orderController.getAllDriverManagerUnderMainHubManager)
 router.get("/getAllIntermediateHubManagerUnderMainHubManager", authenticateMainHubManager, orderController.getAllIntermediateHubManagerUnderMainHubManager)
 router.put("/updateOrderForMainHubManager", authenticateMainHubManager, orderController.updateOrderForMainHubManager)

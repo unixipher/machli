@@ -5,9 +5,10 @@ import { eq } from 'drizzle-orm';
 
 export const createVehicle = async (req, res) => {
     const { number, model, capacity } = req.body;
+    const hubmanagerId = req.manager.id;
 
-    if (!number || !model || !capacity) {
-        return error('number, model, and capacity are required', res, 400);
+    if (!number || !model || !capacity || !hubmanagerId) {
+        return error('number, model, capacity, and hubmanagerId are required', res, 400);
     }
     try {
         const [newVehicle] = await drizzle
@@ -17,7 +18,8 @@ export const createVehicle = async (req, res) => {
                 model,
                 drivermanagerId: null,
                 status: 'available',
-                capacity
+                capacity,
+                hubmanagerId
             })
             .returning();
 

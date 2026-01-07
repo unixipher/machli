@@ -99,6 +99,15 @@ export const product = pgTable('Product', {
   quantity: integer('quantity').notNull(),
 });
 
+export const otp = pgTable('OTP', {
+  id: serial('id').primaryKey(),
+  email: varchar('email').notNull(),
+  otp: varchar('otp').notNull(),
+  verified: varchar('verified').notNull().default('false'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  expiresAt: timestamp('expiresAt').notNull(),
+});
+
 // Relations
 export const driverManagerRelations = relations(driverManager, ({ many }) => ({
   vehicles: many(vehicle),
