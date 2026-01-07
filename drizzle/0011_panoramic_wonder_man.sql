@@ -1,1 +1,0 @@
-ALTER TABLE "vehicle" ADD COLUMN "metadata" json;

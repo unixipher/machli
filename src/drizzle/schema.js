@@ -93,6 +93,7 @@ export const product = pgTable('Product', {
   title: varchar('title').notNull(),
   description: varchar('description').notNull(),
   price: real('price').notNull(),
+  hubmanagerId: integer('hubmanagerId').notNull().references(() => hubManager.id),
   metadata: json('metadata'),
   createdAt: timestamp('createdAt', { precision: 6 }).notNull().defaultNow(),
   updatedAt: timestamp('updatedAt', { precision: 6 }).notNull().defaultNow(),

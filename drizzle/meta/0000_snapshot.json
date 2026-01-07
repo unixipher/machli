@@ -1,5 +1,5 @@
 {
-  "id": "5e4d805b-7c1f-407a-b1cd-0050776373e9",
+  "id": "4a2ace49-b13b-4d3c-8955-33a34b321479",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -39,6 +39,36 @@
           "primaryKey": false,
           "notNull": true
         },
+        "hubmanagerId": {
+          "name": "hubmanagerId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geoLat": {
+          "name": "geoLat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geoLng": {
+          "name": "geoLng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
         "category": {
           "name": "category",
           "type": "DriverManagerCategory",
@@ -50,25 +80,49 @@
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "DriverManager_hubmanagerId_HubManager_id_fk": {
+          "name": "DriverManager_hubmanagerId_HubManager_id_fk",
+          "tableFrom": "DriverManager",
+          "tableTo": "HubManager",
+          "columnsFrom": [
+            "hubmanagerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "DriverManager_email_unique": {
+          "name": "DriverManager_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "DriverManager_phone_unique": {
+          "name": "DriverManager_phone_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone"
+          ]
+        },
         "DriverManager_token_unique": {
           "name": "DriverManager_token_unique",
           "nullsNotDistinct": false,
@@ -109,11 +163,36 @@
           "primaryKey": false,
           "notNull": true
         },
+        "token": {
+          "name": "token",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geoLat": {
+          "name": "geoLat",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "geoLng": {
+          "name": "geoLng",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "hubmanagerCategory": {
           "name": "hubmanagerCategory",
@@ -122,23 +201,52 @@
           "primaryKey": false,
           "notNull": true
         },
+        "mainHubManagerId": {
+          "name": "mainHubManagerId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
           "primaryKey": false,
-          "notNull": true
-        },
-        "token": {
-          "name": "token",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "HubManager_mainHubManagerId_HubManager_id_fk": {
+          "name": "HubManager_mainHubManagerId_HubManager_id_fk",
+          "tableFrom": "HubManager",
+          "tableTo": "HubManager",
+          "columnsFrom": [
+            "mainHubManagerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "HubManager_email_unique": {
+          "name": "HubManager_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        },
+        "HubManager_phone_unique": {
+          "name": "HubManager_phone_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "phone"
+          ]
+        },
         "HubManager_token_unique": {
           "name": "HubManager_token_unique",
           "nullsNotDistinct": false,
@@ -173,6 +281,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "vehicleId": {
+          "name": "vehicleId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "metadata": {
           "name": "metadata",
           "type": "json",
@@ -185,7 +299,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
-          "default": "'pending'"
+          "default": "'created'"
+        },
+        "deliveryDate": {
+          "name": "deliveryDate",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -223,6 +343,19 @@
           "tableTo": "HubManager",
           "columnsFrom": [
             "hubmanagerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "Order_vehicleId_vehicle_id_fk": {
+          "name": "Order_vehicleId_vehicle_id_fk",
+          "tableFrom": "Order",
+          "tableTo": "vehicle",
+          "columnsFrom": [
+            "vehicleId"
           ],
           "columnsTo": [
             "id"
@@ -337,6 +470,57 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.OTP": {
+      "name": "OTP",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "otp": {
+          "name": "otp",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified": {
+          "name": "verified",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'false'"
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expiresAt": {
+          "name": "expiresAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.Product": {
       "name": "Product",
       "schema": "",
@@ -362,6 +546,12 @@
         "price": {
           "name": "price",
           "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hubmanagerId": {
+          "name": "hubmanagerId",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -393,7 +583,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "Product_hubmanagerId_HubManager_id_fk": {
+          "name": "Product_hubmanagerId_HubManager_id_fk",
+          "tableFrom": "Product",
+          "tableTo": "HubManager",
+          "columnsFrom": [
+            "hubmanagerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -419,6 +623,12 @@
         "phone": {
           "name": "phone",
           "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hubmanagerId": {
+          "name": "hubmanagerId",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -453,16 +663,24 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "token": {
-          "name": "token",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "Shop_hubmanagerId_HubManager_id_fk": {
+          "name": "Shop_hubmanagerId_HubManager_id_fk",
+          "tableFrom": "Shop",
+          "tableTo": "HubManager",
+          "columnsFrom": [
+            "hubmanagerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "Shop_phone_unique": {
@@ -470,13 +688,6 @@
           "nullsNotDistinct": false,
           "columns": [
             "phone"
-          ]
-        },
-        "Shop_token_unique": {
-          "name": "Shop_token_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token"
           ]
         }
       },
@@ -506,22 +717,28 @@
           "primaryKey": false,
           "notNull": true
         },
-        "orderId": {
-          "name": "orderId",
-          "type": "integer[]",
-          "primaryKey": false,
-          "notNull": false
-        },
         "drivermanagerId": {
           "name": "drivermanagerId",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",
           "type": "vehicleStatus",
           "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hubmanagerId": {
+          "name": "hubmanagerId",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
@@ -560,6 +777,19 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "vehicle_hubmanagerId_HubManager_id_fk": {
+          "name": "vehicle_hubmanagerId_HubManager_id_fk",
+          "tableFrom": "vehicle",
+          "tableTo": "HubManager",
+          "columnsFrom": [
+            "hubmanagerId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -582,16 +812,16 @@
       "name": "DriverManagerCategory",
       "schema": "public",
       "values": [
-        "large",
-        "small"
+        "main",
+        "intermediate"
       ]
     },
     "public.driverManagerStatus": {
       "name": "driverManagerStatus",
       "schema": "public",
       "values": [
-        "active",
-        "inactive"
+        "occupied",
+        "available"
       ]
     },
     "public.HubManagerCategory": {
@@ -609,6 +839,8 @@
         "created",
         "pending",
         "in_transit",
+        "in_source",
+        "in_hub",
         "delivered",
         "cancelled"
       ]
