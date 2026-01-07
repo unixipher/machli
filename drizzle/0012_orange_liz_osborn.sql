@@ -1,0 +1,2 @@
+ALTER TABLE "Shop" ADD COLUMN "hubmanagerId" integer NOT NULL;--> statement-breakpoint
+ALTER TABLE "Shop" ADD CONSTRAINT "Shop_hubmanagerId_HubManager_id_fk" FOREIGN KEY ("hubmanagerId") REFERENCES "public"."HubManager"("id") ON DELETE no action ON UPDATE no action;

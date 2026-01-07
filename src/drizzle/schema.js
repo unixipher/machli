@@ -1,7 +1,5 @@
 import { pgTable, serial, varchar, integer, real, json, timestamp, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
-import { hu } from 'zod/locales';
-import { meta } from 'zod/v4/core';
 
 // Enums
 export const driverManagerCategoryEnum = pgEnum('DriverManagerCategory', ['main', 'intermediate']);
@@ -46,6 +44,7 @@ export const shop = pgTable('Shop', {
   id: serial('id').primaryKey(),
   name: varchar('name').notNull(),
   phone: varchar('phone').notNull().unique(),
+  hubmanagerId: integer('hubmanagerId').notNull().references(() => hubManager.id),
   geoLat: real('geoLat').notNull(),
   geoLng: real('geoLng').notNull(),
   address: varchar('address').notNull(),

@@ -6,6 +6,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 export const createShop = async (req, res) => {
     try {
         const { name, phone, address, geoLat, geoLng } = req.body;
+        const manager = req.manager;
 
         if (!name || !phone || !address || !geoLat || !geoLng) {
             return error('name, phone, address, geoLat, and geoLng are required', res, 400);
@@ -16,6 +17,7 @@ export const createShop = async (req, res) => {
             .values({
                 name,
                 phone,
+                hubmanagerId: manager.id,
                 address,
                 geoLat,
                 geoLng
