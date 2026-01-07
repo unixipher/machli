@@ -15,6 +15,7 @@ export const createProduct = async (req, res) => {
                 title,
                 description,
                 price,
+                hubmanagerId: req.manager.id,
                 metadata: metadata || null,
                 quantity
             })
@@ -25,6 +26,7 @@ export const createProduct = async (req, res) => {
             data: newProduct
         });
     } catch (err) {
-        error(err.message, res);
+        console.error('Error creating product:', err);
+        error(err.message || err.toString(), res);
     }
 }

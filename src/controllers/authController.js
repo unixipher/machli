@@ -220,6 +220,32 @@ export const createHubManager = async (req, res) => {
             return error('Hub manager with this email already exists', res, 400);
         }
 
+        const [existingPhone] = await drizzle
+            .select()
+            .from(hubManager)
+            .where(eq(hubManager.phone, phone))
+            .limit(1);
+
+        if (existingPhone) {
+            return error('Hub manager with this phone number already exists', res, 400);
+        }
+
+        if (mainHubManagerId) {
+            const [mainHub] = await drizzle
+                .select()
+                .from(hubManager)
+                .where(eq(hubManager.id, mainHubManagerId))
+                .limit(1);
+
+            if (!mainHub) {
+                return error(`Main hub manager with ID ${mainHubManagerId} does not exist`, res, 400);
+            }
+
+            if (mainHub.hubmanagerCategory !== 'main') {
+                return error('The referenced hub manager must be of category "main"', res, 400);
+            }
+        }
+
         const token = crypto.randomBytes(32).toString('hex');
 
         const [newHubManager] = await drizzle
@@ -243,7 +269,8 @@ export const createHubManager = async (req, res) => {
             data: newHubManager
         });
     } catch (err) {
-        error(err.message, res);
+        console.error('Error creating hub manager:', err);
+        error(err.message || err.toString(), res);
     }
 }
 
