@@ -16,7 +16,6 @@ export const createVehicle = async (req, res) => {
             .values({
                 number,
                 model,
-                drivermanagerId: null,
                 status: 'available',
                 capacity,
                 hubmanagerId
