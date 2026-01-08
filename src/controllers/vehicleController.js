@@ -17,8 +17,8 @@ export const createVehicle = async (req, res) => {
                 number,
                 model,
                 status: 'available',
-                capacity,
-                hubmanagerId
+                capacity: parseFloat(capacity),
+                hubmanagerId: parseInt(hubmanagerId)
             })
             .returning();
 
@@ -27,6 +27,13 @@ export const createVehicle = async (req, res) => {
             data: newVehicle
         });
     } catch (err) {
+        console.error('Vehicle creation error:', err);
+        if (err.code === '23503') {
+            return error('Invalid hubmanagerId: Hub manager does not exist', res, 400);
+        }
+        if (err.code === '23505') {
+            return error('Vehicle number already exists', res, 400);
+        }
         error(err.message, res);
     }
 }
