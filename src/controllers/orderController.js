@@ -287,9 +287,26 @@ export const updateOrderForIntermediateHubManager = async (req, res) => {
             .where(eq(order.id, orderId))
             .returning();
 
+        const items = await drizzle
+            .select({
+                id: orderItem.id,
+                orderId: orderItem.orderId,
+                productId: orderItem.productId,
+                quantity: orderItem.quantity,
+                productTitle: product.title,
+                productDescription: product.description,
+                productPrice: product.price,
+            })
+            .from(orderItem)
+            .leftJoin(product, eq(orderItem.productId, product.id))
+            .where(eq(orderItem.orderId, updatedOrder.id));
+
         res.status(200).json({
             success: true,
-            data: updatedOrder,
+            data: {
+                ...updatedOrder,
+                items: items || [],
+            },
         });
     } catch (err) {
         error(err.message, res);
@@ -337,9 +354,26 @@ export const updateOrderForMainHubManager = async (req, res) => {
             .where(eq(order.id, orderId))
             .returning();
 
+        const items = await drizzle
+            .select({
+                id: orderItem.id,
+                orderId: orderItem.orderId,
+                productId: orderItem.productId,
+                quantity: orderItem.quantity,
+                productTitle: product.title,
+                productDescription: product.description,
+                productPrice: product.price,
+            })
+            .from(orderItem)
+            .leftJoin(product, eq(orderItem.productId, product.id))
+            .where(eq(orderItem.orderId, updatedOrder.id));
+
         res.status(200).json({
             success: true,
-            data: updatedOrder,
+            data: {
+                ...updatedOrder,
+                items: items || [],
+            },
         });
     } catch (err) {
         error(err.message, res);
