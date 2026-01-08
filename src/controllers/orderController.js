@@ -119,9 +119,32 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
             }
         }
 
+        const ordersWithProducts = await Promise.all(
+            orders.map(async (ord) => {
+                const items = await drizzle
+                    .select({
+                        id: orderItem.id,
+                        orderId: orderItem.orderId,
+                        productId: orderItem.productId,
+                        quantity: orderItem.quantity,
+                        productName: product.name,
+                        productPrice: product.price,
+                        productCategory: product.category,
+                    })
+                    .from(orderItem)
+                    .leftJoin(product, eq(orderItem.productId, product.id))
+                    .where(eq(orderItem.orderId, ord.id));
+
+                return {
+                    ...ord,
+                    items,
+                };
+            })
+        );
+
         res.status(200).json({
             success: true,
-            data: orders,
+            data: ordersWithProducts,
         });
     } catch (err) {
         error(err.message, res);
@@ -156,13 +179,36 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
                     .from(order)
                     .where(eq(order.hubmanagerId, intermediateManager.id));
 
+                const ordersWithProducts = await Promise.all(
+                    orders.map(async (ord) => {
+                        const items = await drizzle
+                            .select({
+                                id: orderItem.id,
+                                orderId: orderItem.orderId,
+                                productId: orderItem.productId,
+                                quantity: orderItem.quantity,
+                                productName: product.name,
+                                productPrice: product.price,
+                                productCategory: product.category,
+                            })
+                            .from(orderItem)
+                            .leftJoin(product, eq(orderItem.productId, product.id))
+                            .where(eq(orderItem.orderId, ord.id));
+
+                        return {
+                            ...ord,
+                            items,
+                        };
+                    })
+                );
+
                 return {
                     intermediateManager: {
                         name: intermediateManager.name,
                         email: intermediateManager.email,
                         phone: intermediateManager.phone,
                     },
-                    orders,
+                    orders: ordersWithProducts,
                 };
             })
         );
