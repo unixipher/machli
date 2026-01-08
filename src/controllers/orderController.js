@@ -94,46 +94,65 @@ export const createOrder = async (req, res) => {
 export const getAllOrdersForIntermediateHubManager = async (req, res) => {
     try {
         const manager = req.manager;
+        console.log('[getAllOrdersForIntermediateHubManager] Manager:', { id: manager.id, category: manager.hubmanagerCategory });
         let orders;
 
         if (manager.hubmanagerCategory === 'intermediate') {
+            console.log('[getAllOrdersForIntermediateHubManager] Fetching orders for intermediate manager');
             orders = await drizzle
                 .select()
                 .from(order)
                 .where(eq(order.hubmanagerId, manager.id));
+            console.log('[getAllOrdersForIntermediateHubManager] Orders fetched:', orders.length);
         } else {
+            console.log('[getAllOrdersForIntermediateHubManager] Fetching intermediate managers under main manager');
             const intermediateManagers = await drizzle
                 .select({ id: hubManager.id })
                 .from(hubManager)
                 .where(eq(hubManager.mainHubManagerId, manager.id));
 
             const intermediateManagerIds = intermediateManagers.map(m => m.id);
+            console.log('[getAllOrdersForIntermediateHubManager] Intermediate manager IDs:', intermediateManagerIds);
 
             if (intermediateManagerIds.length > 0) {
                 orders = await drizzle
                     .select()
                     .from(order)
                     .where(inArray(order.hubmanagerId, intermediateManagerIds));
+                console.log('[getAllOrdersForIntermediateHubManager] Orders fetched:', orders.length);
             } else {
                 orders = [];
+                console.log('[getAllOrdersForIntermediateHubManager] No intermediate managers found');
             }
         }
 
+        console.log('[getAllOrdersForIntermediateHubManager] Fetching products for', orders.length, 'orders');
         const ordersWithProducts = await Promise.all(
-            (orders || []).map(async (ord) => {
-                const items = await drizzle
-                    .select({
-                        id: orderItem.id,
-                        orderId: orderItem.orderId,
-                        productId: orderItem.productId,
-                        quantity: orderItem.quantity,
-                        productName: product.name,
-                        productPrice: product.price,
-                        productCategory: product.category,
-                    })
-                    .from(orderItem)
-                    .leftJoin(product, eq(orderItem.productId, product.id))
-                    .where(eq(orderItem.orderId, ord.id));
+            (orders || []).map(async (ord, index) => {
+                console.log(`[getAllOrdersForIntermediateHubManager] Fetching items for order ${index + 1}/${orders.length}, orderId:`, ord.id);
+                console.log(`[getAllOrdersForIntermediateHubManager] Order object:`, ord);
+                
+                let items = [];
+                try {
+                    items = await drizzle
+                        .select({
+                            id: orderItem.id,
+                            orderId: orderItem.orderId,
+                            productId: orderItem.productId,
+                            quantity: orderItem.quantity,
+                            productTitle: product.title,
+                            productDescription: product.description,
+                            productPrice: product.price,
+                        })
+                        .from(orderItem)
+                        .leftJoin(product, eq(orderItem.productId, product.id))
+                        .where(eq(orderItem.orderId, ord.id));
+                    console.log(`[getAllOrdersForIntermediateHubManager] Items fetched for order ${ord.id}:`, items ? items.length : 'null/undefined');
+                    console.log(`[getAllOrdersForIntermediateHubManager] Items data:`, items);
+                } catch (itemError) {
+                    console.error(`[getAllOrdersForIntermediateHubManager] Error fetching items for order ${ord.id}:`, itemError.message);
+                    items = [];
+                }
 
                 return {
                     ...ord,
@@ -142,11 +161,13 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
             })
         );
 
+        console.log('[getAllOrdersForIntermediateHubManager] Sending response with', ordersWithProducts.length, 'orders');
         res.status(200).json({
             success: true,
             data: ordersWithProducts,
         });
     } catch (err) {
+        console.error('[getAllOrdersForIntermediateHubManager] Error:', err.message);
         error(err.message, res);
     }
 }
@@ -154,6 +175,7 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
 export const getAllOrdersForMainHubManager = async (req, res) => {
     try {
         const manager = req.manager;
+        console.log('[getAllOrdersForMainHubManager] Manager:', { id: manager.id });
 
         const intermediateManagers = await drizzle
             .select({
@@ -165,35 +187,45 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
             .from(hubManager)
             .where(eq(hubManager.mainHubManagerId, manager.id));
 
+        console.log('[getAllOrdersForMainHubManager] Intermediate managers found:', intermediateManagers.length);
+
         if (intermediateManagers.length === 0) {
+            console.log('[getAllOrdersForMainHubManager] No intermediate managers, returning empty array');
             return res.status(200).json({
                 success: true,
                 data: [],
             });
         }
 
+        console.log('[getAllOrdersForMainHubManager] Fetching orders for each intermediate manager');
         const result = await Promise.all(
-            intermediateManagers.map(async (intermediateManager) => {
+            intermediateManagers.map(async (intermediateManager, index) => {
+                console.log(`[getAllOrdersForMainHubManager] Fetching orders for intermediate manager ${index + 1}/${intermediateManagers.length}, ID:`, intermediateManager.id);
                 const orders = await drizzle
                     .select()
                     .from(order)
                     .where(eq(order.hubmanagerId, intermediateManager.id));
+                
+                console.log(`[getAllOrdersForMainHubManager] Orders found for manager ${intermediateManager.id}:`, orders.length);
 
                 const ordersWithProducts = await Promise.all(
-                    (orders || []).map(async (ord) => {
+                    (orders || []).map(async (ord, orderIndex) => {
+                        console.log(`[getAllOrdersForMainHubManager] Fetching items for order ${orderIndex + 1}/${orders.length}, orderId:`, ord.id);
                         const items = await drizzle
                             .select({
                                 id: orderItem.id,
                                 orderId: orderItem.orderId,
                                 productId: orderItem.productId,
                                 quantity: orderItem.quantity,
-                                productName: product.name,
+                                productTitle: product.title,
+                                productDescription: product.description,
                                 productPrice: product.price,
-                                productCategory: product.category,
                             })
                             .from(orderItem)
                             .leftJoin(product, eq(orderItem.productId, product.id))
                             .where(eq(orderItem.orderId, ord.id));
+                        
+                        console.log(`[getAllOrdersForMainHubManager] Items fetched for order ${ord.id}:`, items.length);
 
                         return {
                             ...ord,
@@ -213,11 +245,13 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
             })
         );
 
+        console.log('[getAllOrdersForMainHubManager] Sending response with data for', result.length, 'intermediate managers');
         res.status(200).json({
             success: true,
             data: result,
         });
     } catch (err) {
+        console.error('[getAllOrdersForMainHubManager] Error:', err.message);
         error(err.message, res);
     }
 }
@@ -345,9 +379,9 @@ export const getOrdersForMainDriverManager = async (req, res) => {
                         orderId: orderItem.orderId,
                         productId: orderItem.productId,
                         quantity: orderItem.quantity,
-                        productName: product.name,
+                        productTitle: product.title,
+                        productDescription: product.description,
                         productPrice: product.price,
-                        productCategory: product.category,
                     })
                     .from(orderItem)
                     .leftJoin(product, eq(orderItem.productId, product.id))
@@ -402,9 +436,9 @@ export const getOrdersForIntermediateDriverManager = async (req, res) => {
                         orderId: orderItem.orderId,
                         productId: orderItem.productId,
                         quantity: orderItem.quantity,
-                        productName: product.name,
+                        productTitle: product.title,
+                        productDescription: product.description,
                         productPrice: product.price,
-                        productCategory: product.category,
                     })
                     .from(orderItem)
                     .leftJoin(product, eq(orderItem.productId, product.id))
