@@ -593,3 +593,49 @@ export const getAllProductsUnderIntermediateHubManager = async (req, res) => {
         error(err.message, res);
     }
 }
+
+export const getAllVehicleUnderIntermediateHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const vehicles = await drizzle
+            .select()
+            .from(vehicle)
+            .where(eq(vehicle.hubmanagerId, manager.id));
+
+        res.status(200).json({
+            success: true,
+            data: vehicles,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
+
+export const getAllVehicleUnderMainHubManager = async (req, res) => {
+    try {
+        const manager = req.manager;
+
+        const intermediateManagers = await drizzle
+            .select({ id: hubManager.id })
+            .from(hubManager)
+            .where(eq(hubManager.mainHubManagerId, manager.id));
+
+        const intermediateManagerIds = intermediateManagers.map(m => m.id);
+
+        let vehicles = [];
+        if (intermediateManagerIds.length > 0) {
+            vehicles = await drizzle
+                .select()
+                .from(vehicle)
+                .where(inArray(vehicle.hubmanagerId, intermediateManagerIds));
+        }
+        
+        res.status(200).json({
+            success: true,
+            data: vehicles,
+        });
+    } catch (err) {
+        error(err.message, res);
+    }
+}
