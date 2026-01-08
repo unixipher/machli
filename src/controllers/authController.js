@@ -46,30 +46,40 @@ const sendOTP = async (email, otpCode) => {
 };
 
 export const requestOTP = async (req, res) => {
+    console.log('[requestOTP] Function entry');
     const { email } = req.body;
+    console.log('[requestOTP] Request body:', { email });
     
     if (!email) {
+        console.log('[requestOTP] Validation failed: Email is required');
         return error('Email is required', res, 400);
     }
 
     try {
+        console.log('[requestOTP] Checking for existing hub manager with email:', email);
         const [existingHubManager] = await drizzle
             .select()
             .from(hubManager)
             .where(eq(hubManager.email, email))
             .limit(1);
+        console.log('[requestOTP] Hub manager found:', !!existingHubManager);
 
+        console.log('[requestOTP] Checking for existing driver manager with email:', email);
         const [existingDriverManager] = await drizzle
             .select()
             .from(driverManager)
             .where(eq(driverManager.email, email))
             .limit(1);
+        console.log('[requestOTP] Driver manager found:', !!existingDriverManager);
 
         const userExists = existingHubManager || existingDriverManager;
+        console.log('[requestOTP] User exists:', !!userExists);
 
         const otpCode = generateOTP();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+        console.log('[requestOTP] Generated OTP, expires at:', expiresAt);
 
+        console.log('[requestOTP] Inserting OTP record into database');
         await drizzle
             .insert(otp)
             .values({
@@ -78,9 +88,13 @@ export const requestOTP = async (req, res) => {
                 verified: 'false',
                 expiresAt
             });
+        console.log('[requestOTP] OTP record inserted successfully');
 
+        console.log('[requestOTP] Sending OTP email to:', email);
         await sendOTP(email, otpCode);
+        console.log('[requestOTP] OTP email sent successfully');
 
+        console.log('[requestOTP] Sending success response');
         res.status(200).json({
             success: true,
             message: 'OTP sent successfully',
@@ -91,18 +105,23 @@ export const requestOTP = async (req, res) => {
             }
         });
     } catch (err) {
+        console.error('[requestOTP] Error:', err.message, err.stack);
         error(err.message, res);
     }
 };
 
 export const verifyOTP = async (req, res) => {
+    console.log('[verifyOTP] Function entry');
     const { email, otp: userOTP } = req.body;
+    console.log('[verifyOTP] Request body:', { email, otpProvided: !!userOTP });
 
     if (!email || !userOTP) {
+        console.log('[verifyOTP] Validation failed: Email and OTP are required');
         return error('Email and OTP are required', res, 400);
     }
 
     try {
+        console.log('[verifyOTP] Fetching OTP record for email:', email);
         const [otpRecord] = await drizzle
             .select()
             .from(otp)
@@ -116,29 +135,38 @@ export const verifyOTP = async (req, res) => {
             )
             .orderBy(desc(otp.createdAt))
             .limit(1);
+        console.log('[verifyOTP] OTP record found:', !!otpRecord);
 
         if (!otpRecord) {
+            console.log('[verifyOTP] Invalid or expired OTP');
             return error('Invalid or expired OTP', res, 400);
         }
 
+        console.log('[verifyOTP] Marking OTP as verified, ID:', otpRecord.id);
         await drizzle
             .update(otp)
             .set({ verified: 'true' })
             .where(eq(otp.id, otpRecord.id));
+        console.log('[verifyOTP] OTP marked as verified');
 
+        console.log('[verifyOTP] Checking for existing hub manager with email:', email);
         const [existingHubManager] = await drizzle
             .select()
             .from(hubManager)
             .where(eq(hubManager.email, email))
             .limit(1);
+        console.log('[verifyOTP] Hub manager found:', !!existingHubManager);
 
+        console.log('[verifyOTP] Checking for existing driver manager with email:', email);
         const [existingDriverManager] = await drizzle
             .select()
             .from(driverManager)
             .where(eq(driverManager.email, email))
             .limit(1);
+        console.log('[verifyOTP] Driver manager found:', !!existingDriverManager);
 
         if (existingHubManager) {
+            console.log('[verifyOTP] Returning hub manager data');
             res.status(200).json({
                 success: true,
                 message: 'OTP verified successfully',
@@ -150,6 +178,7 @@ export const verifyOTP = async (req, res) => {
                 }
             });
         } else if (existingDriverManager) {
+            console.log('[verifyOTP] Returning driver manager data');
             res.status(200).json({
                 success: true,
                 message: 'OTP verified successfully',
@@ -161,6 +190,7 @@ export const verifyOTP = async (req, res) => {
                 }
             });
         } else {
+            console.log('[verifyOTP] No existing user, profile creation required');
             res.status(200).json({
                 success: true,
                 message: 'OTP verified successfully. Please create your profile.',
@@ -173,27 +203,34 @@ export const verifyOTP = async (req, res) => {
             });
         }
     } catch (err) {
+        console.error('[verifyOTP] Error:', err.message, err.stack);
         error(err.message, res);
     }
 };
 
 
 export const createHubManager = async (req, res) => {
+    console.log('[createHubManager] Function entry');
     const { name, email, phone, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng } = req.body;
+    console.log('[createHubManager] Request body:', { name, email, phone, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng });
     
     if (!name || !email || !phone || !hubmanagerCategory || !address || !geoLat || !geoLng) {
+        console.log('[createHubManager] Validation failed: Missing required fields');
         return error('name, email, phone, hubmanagerCategory, address, geoLat, and geoLng are required', res, 400);
     }
     
     if (hubmanagerCategory === 'intermediate' && !mainHubManagerId) {
+        console.log('[createHubManager] Validation failed: mainHubManagerId required for intermediate');
         return error('mainHubManagerId is required for intermediate hub managers', res, 400);
     }
     
     if (hubmanagerCategory === 'main' && mainHubManagerId) {
+        console.log('[createHubManager] Validation failed: mainHubManagerId not allowed for main');
         return error('mainHubManagerId should not be provided for main hub managers', res, 400);
     }
 
     try {
+        console.log('[createHubManager] Checking for verified OTP');
         const [verifiedOTP] = await drizzle
             .select()
             .from(otp)
@@ -205,49 +242,63 @@ export const createHubManager = async (req, res) => {
             )
             .orderBy(desc(otp.createdAt))
             .limit(1);
+        console.log('[createHubManager] Verified OTP found:', !!verifiedOTP);
 
         if (!verifiedOTP) {
+            console.log('[createHubManager] Email not verified');
             return error('Email not verified. Please verify OTP first.', res, 400);
         }
 
+        console.log('[createHubManager] Checking for existing hub manager with email:', email);
         const [existingManager] = await drizzle
             .select()
             .from(hubManager)
             .where(eq(hubManager.email, email))
             .limit(1);
+        console.log('[createHubManager] Existing manager found:', !!existingManager);
 
         if (existingManager) {
+            console.log('[createHubManager] Hub manager already exists with email:', email);
             return error('Hub manager with this email already exists', res, 400);
         }
 
+        console.log('[createHubManager] Checking for existing phone:', phone);
         const [existingPhone] = await drizzle
             .select()
             .from(hubManager)
             .where(eq(hubManager.phone, phone))
             .limit(1);
+        console.log('[createHubManager] Existing phone found:', !!existingPhone);
 
         if (existingPhone) {
+            console.log('[createHubManager] Phone number already exists:', phone);
             return error('Hub manager with this phone number already exists', res, 400);
         }
 
         if (mainHubManagerId) {
+            console.log('[createHubManager] Validating main hub manager ID:', mainHubManagerId);
             const [mainHub] = await drizzle
                 .select()
                 .from(hubManager)
                 .where(eq(hubManager.id, mainHubManagerId))
                 .limit(1);
+            console.log('[createHubManager] Main hub found:', !!mainHub);
 
             if (!mainHub) {
+                console.log('[createHubManager] Main hub manager not found:', mainHubManagerId);
                 return error(`Main hub manager with ID ${mainHubManagerId} does not exist`, res, 400);
             }
 
             if (mainHub.hubmanagerCategory !== 'main') {
+                console.log('[createHubManager] Referenced hub is not main category:', mainHub.hubmanagerCategory);
                 return error('The referenced hub manager must be of category "main"', res, 400);
             }
         }
 
+        console.log('[createHubManager] Generating authentication token');
         const token = crypto.randomBytes(32).toString('hex');
 
+        console.log('[createHubManager] Inserting new hub manager');
         const [newHubManager] = await drizzle
             .insert(hubManager)
             .values({
@@ -262,26 +313,32 @@ export const createHubManager = async (req, res) => {
                 mainHubManagerId: mainHubManagerId || null
             })
             .returning();
+        console.log('[createHubManager] Hub manager created, ID:', newHubManager.id);
 
+        console.log('[createHubManager] Sending success response');
         res.status(201).json({
             success: true,
             message: 'Hub manager created successfully',
             data: newHubManager
         });
     } catch (err) {
-        console.error('Error creating hub manager:', err);
+        console.error('[createHubManager] Error:', err.message, err.stack);
         error(err.message || err.toString(), res);
     }
 }
 
 export const createDriverManager = async (req, res) => {
+    console.log('[createDriverManager] Function entry');
     const { name, email, phone, category, address, geoLat, geoLng, hubmanagerId } = req.body;
+    console.log('[createDriverManager] Request body:', { name, email, phone, category, address, geoLat, geoLng, hubmanagerId });
     
     if (!name || !email || !phone || !category || !address || !geoLat || !geoLng || !hubmanagerId) {
+        console.log('[createDriverManager] Validation failed: Missing required fields');
         return error('name, email, phone, category, address, geoLat, geoLng, and hubmanagerId are required', res, 400);
     }
 
     try {
+        console.log('[createDriverManager] Checking for verified OTP for email:', email);
         const [verifiedOTP] = await drizzle
             .select()
             .from(otp)
@@ -293,23 +350,30 @@ export const createDriverManager = async (req, res) => {
             )
             .orderBy(desc(otp.createdAt))
             .limit(1);
+        console.log('[createDriverManager] Verified OTP found:', !!verifiedOTP);
 
         if (!verifiedOTP) {
+            console.log('[createDriverManager] Email not verified');
             return error('Email not verified. Please verify OTP first.', res, 400);
         }
 
+        console.log('[createDriverManager] Checking for existing driver manager with email:', email);
         const [existingManager] = await drizzle
             .select()
             .from(driverManager)
             .where(eq(driverManager.email, email))
             .limit(1);
+        console.log('[createDriverManager] Existing manager found:', !!existingManager);
 
         if (existingManager) {
+            console.log('[createDriverManager] Driver manager already exists with email:', email);
             return error('Driver manager with this email already exists', res, 400);
         }
 
+        console.log('[createDriverManager] Generating authentication token');
         const token = crypto.randomBytes(32).toString('hex');
 
+        console.log('[createDriverManager] Inserting new driver manager');
         const [newDriverManager] = await drizzle
             .insert(driverManager)
             .values({
@@ -325,53 +389,69 @@ export const createDriverManager = async (req, res) => {
                 status: 'available'
             })
             .returning();
+        console.log('[createDriverManager] Driver manager created, ID:', newDriverManager.id);
 
+        console.log('[createDriverManager] Sending success response');
         res.status(201).json({
             success: true,
             message: 'Driver manager created successfully',
             data: newDriverManager
         });
     } catch (err) {
+        console.error('[createDriverManager] Error:', err.message, err.stack);
         error(err.message, res);
     }
 }
 
 export const getHubManagerProfileInfo = async (req, res) => {
+    console.log('[getHubManagerProfileInfo] Function entry');
     try {
         const manager = req.manager;
+        console.log('[getHubManagerProfileInfo] Manager ID:', manager?.id);
+        console.log('[getHubManagerProfileInfo] Sending profile data');
         res.status(200).json({
             success: true,
             data: manager
         });
     } catch (err) {
+        console.error('[getHubManagerProfileInfo] Error:', err.message, err.stack);
         error(err.message, res);
     }
 }
 
 export const getDriverManagerProfileInfo = async (req, res) => {
+    console.log('[getDriverManagerProfileInfo] Function entry');
     try {
         const manager = req.manager;
+        console.log('[getDriverManagerProfileInfo] Manager ID:', manager?.id);
+        console.log('[getDriverManagerProfileInfo] Sending profile data');
         res.status(200).json({
             success: true,
             data: manager
         });
     } catch (err) {
+        console.error('[getDriverManagerProfileInfo] Error:', err.message, err.stack);
         error(err.message, res);
     }
 }
 
 export const getAllHubManagers = async (req, res) => {
+    console.log('[getAllHubManagers] Function entry');
     try {
+        console.log('[getAllHubManagers] Fetching all main hub managers');
         const managers = await drizzle
             .select()
             .from(hubManager)
             .where(eq(hubManager.hubmanagerCategory, 'main'));
+        console.log('[getAllHubManagers] Hub managers found:', managers.length);
         
+        console.log('[getAllHubManagers] Sending success response');
         res.status(200).json({
             success: true,
             data: managers
         });
     } catch (err) {
+        console.error('[getAllHubManagers] Error:', err.message, err.stack);
         error(err.message, res);
     }
 }
