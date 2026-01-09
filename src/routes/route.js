@@ -29,6 +29,7 @@ router.get("/getAllHubManagers", authController.getAllHubManagers)
 //Intermediate Hub Manager Routes
 router.post("/createShop", authenticateIntermediateHubManager, orderController.createShop)
 router.post("/createVehicleForIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.createVehicle)
+router.put("/updateProduct", authenticateIntermediateHubManager, productController.updateProduct)
 router.get("/getIntermediateHubManagerProfileInfo", authenticateIntermediateHubManager, authController.getHubManagerProfileInfo)
 router.post("/createOrder", authenticateIntermediateHubManager, orderController.createOrder)
 router.get("/getAllShopsUnderIntermediateHubManager", authenticateIntermediateHubManager, orderController.getAllShopsUnderIntermediateHubManager)
