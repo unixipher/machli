@@ -1,7 +1,5 @@
-import { drizzle } from '../drizzle/index.js';
-import { hubManager, driverManager, otp } from '../drizzle/schema.js';
+import prisma from '../lib/prisma.js';
 import { error } from '../middleware/middleware.js';
-import { eq, and, gt, desc } from 'drizzle-orm';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 
@@ -57,19 +55,15 @@ export const requestOTP = async (req, res) => {
 
     try {
         console.log('[requestOTP] Checking for existing hub manager with email:', email);
-        const [existingHubManager] = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.email, email))
-            .limit(1);
+        const existingHubManager = await prisma.hubManager.findUnique({
+            where: { email }
+        });
         console.log('[requestOTP] Hub manager found:', !!existingHubManager);
 
         console.log('[requestOTP] Checking for existing driver manager with email:', email);
-        const [existingDriverManager] = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.email, email))
-            .limit(1);
+        const existingDriverManager = await prisma.driverManager.findUnique({
+            where: { email }
+        });
         console.log('[requestOTP] Driver manager found:', !!existingDriverManager);
 
         const userExists = existingHubManager || existingDriverManager;
@@ -80,14 +74,14 @@ export const requestOTP = async (req, res) => {
         console.log('[requestOTP] Generated OTP, expires at:', expiresAt);
 
         console.log('[requestOTP] Inserting OTP record into database');
-        await drizzle
-            .insert(otp)
-            .values({
+        await prisma.oTP.create({
+            data: {
                 email,
                 otp: otpCode,
                 verified: 'false',
                 expiresAt
-            });
+            }
+        });
         console.log('[requestOTP] OTP record inserted successfully');
 
         console.log('[requestOTP] Sending OTP email to:', email);
@@ -122,19 +116,19 @@ export const verifyOTP = async (req, res) => {
 
     try {
         console.log('[verifyOTP] Fetching OTP record for email:', email);
-        const [otpRecord] = await drizzle
-            .select()
-            .from(otp)
-            .where(
-                and(
-                    eq(otp.email, email),
-                    eq(otp.otp, userOTP),
-                    eq(otp.verified, 'false'),
-                    gt(otp.expiresAt, new Date())
-                )
-            )
-            .orderBy(desc(otp.createdAt))
-            .limit(1);
+        const otpRecord = await prisma.oTP.findFirst({
+            where: {
+                email,
+                otp: userOTP,
+                verified: 'false',
+                expiresAt: {
+                    gt: new Date()
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
         console.log('[verifyOTP] OTP record found:', !!otpRecord);
 
         if (!otpRecord) {
@@ -143,26 +137,22 @@ export const verifyOTP = async (req, res) => {
         }
 
         console.log('[verifyOTP] Marking OTP as verified, ID:', otpRecord.id);
-        await drizzle
-            .update(otp)
-            .set({ verified: 'true' })
-            .where(eq(otp.id, otpRecord.id));
+        await prisma.oTP.update({
+            where: { id: otpRecord.id },
+            data: { verified: 'true' }
+        });
         console.log('[verifyOTP] OTP marked as verified');
 
         console.log('[verifyOTP] Checking for existing hub manager with email:', email);
-        const [existingHubManager] = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.email, email))
-            .limit(1);
+        const existingHubManager = await prisma.hubManager.findUnique({
+            where: { email }
+        });
         console.log('[verifyOTP] Hub manager found:', !!existingHubManager);
 
         console.log('[verifyOTP] Checking for existing driver manager with email:', email);
-        const [existingDriverManager] = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.email, email))
-            .limit(1);
+        const existingDriverManager = await prisma.driverManager.findUnique({
+            where: { email }
+        });
         console.log('[verifyOTP] Driver manager found:', !!existingDriverManager);
 
         if (existingHubManager) {
@@ -231,17 +221,15 @@ export const createHubManager = async (req, res) => {
 
     try {
         console.log('[createHubManager] Checking for verified OTP');
-        const [verifiedOTP] = await drizzle
-            .select()
-            .from(otp)
-            .where(
-                and(
-                    eq(otp.email, email),
-                    eq(otp.verified, 'true')
-                )
-            )
-            .orderBy(desc(otp.createdAt))
-            .limit(1);
+        const verifiedOTP = await prisma.oTP.findFirst({
+            where: {
+                email,
+                verified: 'true'
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
         console.log('[createHubManager] Verified OTP found:', !!verifiedOTP);
 
         if (!verifiedOTP) {
@@ -250,11 +238,9 @@ export const createHubManager = async (req, res) => {
         }
 
         console.log('[createHubManager] Checking for existing hub manager with email:', email);
-        const [existingManager] = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.email, email))
-            .limit(1);
+        const existingManager = await prisma.hubManager.findUnique({
+            where: { email }
+        });
         console.log('[createHubManager] Existing manager found:', !!existingManager);
 
         if (existingManager) {
@@ -263,11 +249,9 @@ export const createHubManager = async (req, res) => {
         }
 
         console.log('[createHubManager] Checking for existing phone:', phone);
-        const [existingPhone] = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.phone, phone))
-            .limit(1);
+        const existingPhone = await prisma.hubManager.findUnique({
+            where: { phone }
+        });
         console.log('[createHubManager] Existing phone found:', !!existingPhone);
 
         if (existingPhone) {
@@ -277,11 +261,9 @@ export const createHubManager = async (req, res) => {
 
         if (mainHubManagerId) {
             console.log('[createHubManager] Validating main hub manager ID:', mainHubManagerId);
-            const [mainHub] = await drizzle
-                .select()
-                .from(hubManager)
-                .where(eq(hubManager.id, mainHubManagerId))
-                .limit(1);
+            const mainHub = await prisma.hubManager.findUnique({
+                where: { id: mainHubManagerId }
+            });
             console.log('[createHubManager] Main hub found:', !!mainHub);
 
             if (!mainHub) {
@@ -299,9 +281,8 @@ export const createHubManager = async (req, res) => {
         const token = crypto.randomBytes(32).toString('hex');
 
         console.log('[createHubManager] Inserting new hub manager');
-        const [newHubManager] = await drizzle
-            .insert(hubManager)
-            .values({
+        const newHubManager = await prisma.hubManager.create({
+            data: {
                 name,
                 email,
                 phone,
@@ -311,8 +292,8 @@ export const createHubManager = async (req, res) => {
                 geoLng,
                 hubmanagerCategory,
                 mainHubManagerId: mainHubManagerId || null
-            })
-            .returning();
+            }
+        });
         console.log('[createHubManager] Hub manager created, ID:', newHubManager.id);
 
         console.log('[createHubManager] Sending success response');
@@ -339,17 +320,15 @@ export const createDriverManager = async (req, res) => {
 
     try {
         console.log('[createDriverManager] Checking for verified OTP for email:', email);
-        const [verifiedOTP] = await drizzle
-            .select()
-            .from(otp)
-            .where(
-                and(
-                    eq(otp.email, email),
-                    eq(otp.verified, 'true')
-                )
-            )
-            .orderBy(desc(otp.createdAt))
-            .limit(1);
+        const verifiedOTP = await prisma.oTP.findFirst({
+            where: {
+                email,
+                verified: 'true'
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
         console.log('[createDriverManager] Verified OTP found:', !!verifiedOTP);
 
         if (!verifiedOTP) {
@@ -358,11 +337,9 @@ export const createDriverManager = async (req, res) => {
         }
 
         console.log('[createDriverManager] Checking for existing driver manager with email:', email);
-        const [existingManager] = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.email, email))
-            .limit(1);
+        const existingManager = await prisma.driverManager.findUnique({
+            where: { email }
+        });
         console.log('[createDriverManager] Existing manager found:', !!existingManager);
 
         if (existingManager) {
@@ -374,9 +351,8 @@ export const createDriverManager = async (req, res) => {
         const token = crypto.randomBytes(32).toString('hex');
 
         console.log('[createDriverManager] Inserting new driver manager');
-        const [newDriverManager] = await drizzle
-            .insert(driverManager)
-            .values({
+        const newDriverManager = await prisma.driverManager.create({
+            data: {
                 name,
                 email,
                 phone,
@@ -387,8 +363,8 @@ export const createDriverManager = async (req, res) => {
                 geoLng,
                 category,
                 status: 'available'
-            })
-            .returning();
+            }
+        });
         console.log('[createDriverManager] Driver manager created, ID:', newDriverManager.id);
 
         console.log('[createDriverManager] Sending success response');
@@ -439,10 +415,11 @@ export const getAllHubManagers = async (req, res) => {
     console.log('[getAllHubManagers] Function entry');
     try {
         console.log('[getAllHubManagers] Fetching all main hub managers');
-        const managers = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.hubmanagerCategory, 'main'));
+        const managers = await prisma.hubManager.findMany({
+            where: {
+                hubmanagerCategory: 'main'
+            }
+        });
         console.log('[getAllHubManagers] Hub managers found:', managers.length);
         
         console.log('[getAllHubManagers] Sending success response');

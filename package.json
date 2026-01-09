@@ -6,25 +6,25 @@
   "scripts": {
     "dev": "node src/app.js",
     "start": "node src/app.js",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@prisma/client": "^6.19.1",
     "@types/node": "^24.10.1",
+    "dotenv": "^17.2.3",
+    "prisma": "^6.19.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "drizzle-kit": "^0.31.8",
-    "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
     "json": "^11.0.0",
     "nodemailer": "^7.0.12",

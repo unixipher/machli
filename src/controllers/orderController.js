@@ -1,7 +1,5 @@
-import { drizzle } from '../drizzle/index.js';
-import { shop, order, orderItem, hubManager, product, vehicle } from '../drizzle/schema.js';
+import prisma from '../lib/prisma.js';
 import { error } from '../middleware/middleware.js';
-import { eq, inArray, sql } from 'drizzle-orm';
 
 export const createShop = async (req, res) => {
     console.log('[createShop] Function entry');
@@ -17,17 +15,16 @@ export const createShop = async (req, res) => {
         }
 
         console.log('[createShop] Inserting new shop');
-        const [newShop] = await drizzle
-            .insert(shop)
-            .values({
+        const newShop = await prisma.shop.create({
+            data: {
                 name,
                 phone,
                 hubmanagerId: manager.id,
                 address,
                 geoLat,
                 geoLng
-            })
-            .returning();
+            }
+        });
         console.log('[createShop] Shop created, ID:', newShop.id);
 
         console.log('[createShop] Sending success response');
@@ -64,49 +61,52 @@ export const createOrder = async (req, res) => {
         console.log('[createOrder] All items validated successfully');
 
         console.log('[createOrder] Inserting new order');
-        const [newOrder] = await drizzle
-            .insert(order)
-            .values({
+        const newOrder = await prisma.order.create({
+            data: {
                 shopId,
                 hubmanagerId: hubManagerId,
                 metadata: metadata || null,
                 deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
-            })
-            .returning();
+            }
+        });
         console.log('[createOrder] Order created, ID:', newOrder.id);
 
         console.log('[createOrder] Inserting order items');
-        const orderItems = await drizzle
-            .insert(orderItem)
-            .values(
-                items.map(item => ({
-                    orderId: newOrder.id,
-                    productId: item.productId,
-                    quantity: item.quantity,
-                }))
-            )
-            .returning();
-        console.log('[createOrder] Order items inserted:', orderItems.length);
+        const orderItems = await prisma.orderItem.createMany({
+            data: items.map(item => ({
+                orderId: newOrder.id,
+                productId: item.productId,
+                quantity: item.quantity,
+            }))
+        });
+        console.log('[createOrder] Order items inserted:', orderItems.count);
 
         console.log('[createOrder] Updating product quantities');
         for (const item of items) {
             console.log('[createOrder] Updating product:', item.productId, 'Reducing quantity by:', item.quantity);
-            await drizzle
-                .update(product)
-                .set({
-                    quantity: sql`${product.quantity} - ${item.quantity}`,
-                    updatedAt: new Date(),
-                })
-                .where(eq(product.id, item.productId));
+            await prisma.product.update({
+                where: { id: item.productId },
+                data: {
+                    quantity: {
+                        decrement: item.quantity
+                    },
+                    updatedAt: new Date()
+                }
+            });
         }
         console.log('[createOrder] Product quantities updated');
+
+        // Fetch the created order items
+        const createdItems = await prisma.orderItem.findMany({
+            where: { orderId: newOrder.id }
+        });
 
         console.log('[createOrder] Sending success response');
         res.status(201).json({
             success: true,
             data: {
                 ...newOrder,
-                items: orderItems,
+                items: createdItems,
             },
         });
     } catch (err) {
@@ -123,26 +123,26 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
 
         if (manager.hubmanagerCategory === 'intermediate') {
             console.log('[getAllOrdersForIntermediateHubManager] Fetching orders for intermediate manager');
-            orders = await drizzle
-                .select()
-                .from(order)
-                .where(eq(order.hubmanagerId, manager.id));
+            orders = await prisma.order.findMany({
+                where: { hubmanagerId: manager.id }
+            });
             console.log('[getAllOrdersForIntermediateHubManager] Orders fetched:', orders.length);
         } else {
             console.log('[getAllOrdersForIntermediateHubManager] Fetching intermediate managers under main manager');
-            const intermediateManagers = await drizzle
-                .select({ id: hubManager.id })
-                .from(hubManager)
-                .where(eq(hubManager.mainHubManagerId, manager.id));
+            const intermediateManagers = await prisma.hubManager.findMany({
+                where: { mainHubManagerId: manager.id },
+                select: { id: true }
+            });
 
             const intermediateManagerIds = intermediateManagers.map(m => m.id);
             console.log('[getAllOrdersForIntermediateHubManager] Intermediate manager IDs:', intermediateManagerIds);
 
             if (intermediateManagerIds.length > 0) {
-                orders = await drizzle
-                    .select()
-                    .from(order)
-                    .where(inArray(order.hubmanagerId, intermediateManagerIds));
+                orders = await prisma.order.findMany({
+                    where: {
+                        hubmanagerId: { in: intermediateManagerIds }
+                    }
+                });
                 console.log('[getAllOrdersForIntermediateHubManager] Orders fetched:', orders.length);
             } else {
                 orders = [];
@@ -154,25 +154,22 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
         const ordersWithProducts = await Promise.all(
             (orders || []).map(async (ord, index) => {
                 console.log(`[getAllOrdersForIntermediateHubManager] Fetching items for order ${index + 1}/${orders.length}, orderId:`, ord.id);
-                console.log(`[getAllOrdersForIntermediateHubManager] Order object:`, ord);
                 
                 let items = [];
                 try {
-                    items = await drizzle
-                        .select({
-                            id: orderItem.id,
-                            orderId: orderItem.orderId,
-                            productId: orderItem.productId,
-                            quantity: orderItem.quantity,
-                            productTitle: product.title,
-                            productDescription: product.description,
-                            productPrice: product.price,
-                        })
-                        .from(orderItem)
-                        .leftJoin(product, eq(orderItem.productId, product.id))
-                        .where(eq(orderItem.orderId, ord.id));
+                    items = await prisma.orderItem.findMany({
+                        where: { orderId: ord.id },
+                        include: {
+                            product: {
+                                select: {
+                                    title: true,
+                                    description: true,
+                                    price: true
+                                }
+                            }
+                        }
+                    });
                     console.log(`[getAllOrdersForIntermediateHubManager] Items fetched for order ${ord.id}:`, items ? items.length : 'null/undefined');
-                    console.log(`[getAllOrdersForIntermediateHubManager] Items data:`, items);
                 } catch (itemError) {
                     console.error(`[getAllOrdersForIntermediateHubManager] Error fetching items for order ${ord.id}:`, itemError.message);
                     items = [];
@@ -201,15 +198,15 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
         const manager = req.manager;
         console.log('[getAllOrdersForMainHubManager] Manager:', { id: manager.id });
 
-        const intermediateManagers = await drizzle
-            .select({
-                id: hubManager.id,
-                name: hubManager.name,
-                email: hubManager.email,
-                phone: hubManager.phone,
-            })
-            .from(hubManager)
-            .where(eq(hubManager.mainHubManagerId, manager.id));
+        const intermediateManagers = await prisma.hubManager.findMany({
+            where: { mainHubManagerId: manager.id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true
+            }
+        });
 
         console.log('[getAllOrdersForMainHubManager] Intermediate managers found:', intermediateManagers.length);
 
@@ -225,29 +222,27 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
         const result = await Promise.all(
             intermediateManagers.map(async (intermediateManager, index) => {
                 console.log(`[getAllOrdersForMainHubManager] Fetching orders for intermediate manager ${index + 1}/${intermediateManagers.length}, ID:`, intermediateManager.id);
-                const orders = await drizzle
-                    .select()
-                    .from(order)
-                    .where(eq(order.hubmanagerId, intermediateManager.id));
+                const orders = await prisma.order.findMany({
+                    where: { hubmanagerId: intermediateManager.id }
+                });
                 
                 console.log(`[getAllOrdersForMainHubManager] Orders found for manager ${intermediateManager.id}:`, orders.length);
 
                 const ordersWithProducts = await Promise.all(
                     (orders || []).map(async (ord, orderIndex) => {
                         console.log(`[getAllOrdersForMainHubManager] Fetching items for order ${orderIndex + 1}/${orders.length}, orderId:`, ord.id);
-                        const items = await drizzle
-                            .select({
-                                id: orderItem.id,
-                                orderId: orderItem.orderId,
-                                productId: orderItem.productId,
-                                quantity: orderItem.quantity,
-                                productTitle: product.title,
-                                productDescription: product.description,
-                                productPrice: product.price,
-                            })
-                            .from(orderItem)
-                            .leftJoin(product, eq(orderItem.productId, product.id))
-                            .where(eq(orderItem.orderId, ord.id));
+                        const items = await prisma.orderItem.findMany({
+                            where: { orderId: ord.id },
+                            include: {
+                                product: {
+                                    select: {
+                                        title: true,
+                                        description: true,
+                                        price: true
+                                    }
+                                }
+                            }
+                        });
                         
                         console.log(`[getAllOrdersForMainHubManager] Items fetched for order ${ord.id}:`, items.length);
 
@@ -294,11 +289,9 @@ export const updateOrderForIntermediateHubManager = async (req, res) => {
         }
 
         console.log('[updateOrderForIntermediateHubManager] Fetching order with ID:', orderId);
-        const [existingOrder] = await drizzle
-            .select()
-            .from(order)
-            .where(eq(order.id, orderId))
-            .limit(1);
+        const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId }
+        });
         console.log('[updateOrderForIntermediateHubManager] Order found:', !!existingOrder);
 
         if (!existingOrder) {
@@ -314,27 +307,25 @@ export const updateOrderForIntermediateHubManager = async (req, res) => {
         console.log('[updateOrderForIntermediateHubManager] Update data:', updateData);
 
         console.log('[updateOrderForIntermediateHubManager] Updating order');
-        const [updatedOrder] = await drizzle
-            .update(order)
-            .set(updateData)
-            .where(eq(order.id, orderId))
-            .returning();
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: updateData
+        });
         console.log('[updateOrderForIntermediateHubManager] Order updated successfully');
 
         console.log('[updateOrderForIntermediateHubManager] Fetching order items');
-        const items = await drizzle
-            .select({
-                id: orderItem.id,
-                orderId: orderItem.orderId,
-                productId: orderItem.productId,
-                quantity: orderItem.quantity,
-                productTitle: product.title,
-                productDescription: product.description,
-                productPrice: product.price,
-            })
-            .from(orderItem)
-            .leftJoin(product, eq(orderItem.productId, product.id))
-            .where(eq(orderItem.orderId, updatedOrder.id));
+        const items = await prisma.orderItem.findMany({
+            where: { orderId: updatedOrder.id },
+            include: {
+                product: {
+                    select: {
+                        title: true,
+                        description: true,
+                        price: true
+                    }
+                }
+            }
+        });
         console.log('[updateOrderForIntermediateHubManager] Items fetched:', items.length);
 
         console.log('[updateOrderForIntermediateHubManager] Sending success response');
@@ -365,11 +356,9 @@ export const updateOrderForMainHubManager = async (req, res) => {
         }
 
         console.log('[updateOrderForMainHubManager] Fetching order with ID:', orderId);
-        const [existingOrder] = await drizzle
-            .select()
-            .from(order)
-            .where(eq(order.id, orderId))
-            .limit(1);
+        const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId }
+        });
         console.log('[updateOrderForMainHubManager] Order found:', !!existingOrder, 'Hub manager ID:', existingOrder?.hubmanagerId);
 
         if (!existingOrder) {
@@ -378,10 +367,10 @@ export const updateOrderForMainHubManager = async (req, res) => {
         }
 
         console.log('[updateOrderForMainHubManager] Fetching intermediate managers');
-        const intermediateManagers = await drizzle
-            .select({ id: hubManager.id })
-            .from(hubManager)
-            .where(eq(hubManager.mainHubManagerId, manager.id));
+        const intermediateManagers = await prisma.hubManager.findMany({
+            where: { mainHubManagerId: manager.id },
+            select: { id: true }
+        });
         const intermediateManagerIds = intermediateManagers.map(m => m.id);
         console.log('[updateOrderForMainHubManager] Intermediate manager IDs:', intermediateManagerIds);
 
@@ -398,27 +387,25 @@ export const updateOrderForMainHubManager = async (req, res) => {
         console.log('[updateOrderForMainHubManager] Update data:', updateData);
 
         console.log('[updateOrderForMainHubManager] Updating order');
-        const [updatedOrder] = await drizzle
-            .update(order)
-            .set(updateData)
-            .where(eq(order.id, orderId))
-            .returning();
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: updateData
+        });
         console.log('[updateOrderForMainHubManager] Order updated successfully');
 
         console.log('[updateOrderForMainHubManager] Fetching order items');
-        const items = await drizzle
-            .select({
-                id: orderItem.id,
-                orderId: orderItem.orderId,
-                productId: orderItem.productId,
-                quantity: orderItem.quantity,
-                productTitle: product.title,
-                productDescription: product.description,
-                productPrice: product.price,
-            })
-            .from(orderItem)
-            .leftJoin(product, eq(orderItem.productId, product.id))
-            .where(eq(orderItem.orderId, updatedOrder.id));
+        const items = await prisma.orderItem.findMany({
+            where: { orderId: updatedOrder.id },
+            include: {
+                product: {
+                    select: {
+                        title: true,
+                        description: true,
+                        price: true
+                    }
+                }
+            }
+        });
         console.log('[updateOrderForMainHubManager] Items fetched:', items.length);
 
         console.log('[updateOrderForMainHubManager] Sending success response');
@@ -444,19 +431,20 @@ export const getOrdersForMainDriverManager = async (req, res) => {
 
         if (driver.category === 'main') {
             console.log('[getOrdersForMainDriverManager] Fetching vehicles for driver ID:', driver.id);
-            const vehicles = await drizzle
-                .select({ id: vehicle.id })
-                .from(vehicle)
-                .where(eq(vehicle.drivermanagerId, driver.id));
+            const vehicles = await prisma.vehicle.findMany({
+                where: { drivermanagerId: driver.id },
+                select: { id: true }
+            });
             const vehicleIds = vehicles.map(v => v.id);
             console.log('[getOrdersForMainDriverManager] Vehicles found:', vehicleIds);
 
             if (vehicleIds.length > 0) {
                 console.log('[getOrdersForMainDriverManager] Fetching orders for vehicles');
-                orders = await drizzle
-                    .select()
-                    .from(order)
-                    .where(inArray(order.vehicleId, vehicleIds));
+                orders = await prisma.order.findMany({
+                    where: {
+                        vehicleId: { in: vehicleIds }
+                    }
+                });
                 console.log('[getOrdersForMainDriverManager] Orders found:', orders.length);
             } else {
                 console.log('[getOrdersForMainDriverManager] No vehicles found');
@@ -471,19 +459,18 @@ export const getOrdersForMainDriverManager = async (req, res) => {
         const ordersWithProducts = await Promise.all(
             (orders || []).map(async (ord) => {
                 console.log('[getOrdersForMainDriverManager] Fetching items for order ID:', ord.id);
-                const items = await drizzle
-                    .select({
-                        id: orderItem.id,
-                        orderId: orderItem.orderId,
-                        productId: orderItem.productId,
-                        quantity: orderItem.quantity,
-                        productTitle: product.title,
-                        productDescription: product.description,
-                        productPrice: product.price,
-                    })
-                    .from(orderItem)
-                    .leftJoin(product, eq(orderItem.productId, product.id))
-                    .where(eq(orderItem.orderId, ord.id));
+                const items = await prisma.orderItem.findMany({
+                    where: { orderId: ord.id },
+                    include: {
+                        product: {
+                            select: {
+                                title: true,
+                                description: true,
+                                price: true
+                            }
+                        }
+                    }
+                });
                 console.log('[getOrdersForMainDriverManager] Items fetched for order', ord.id, ':', items.length);
 
                 return {
@@ -513,19 +500,20 @@ export const getOrdersForIntermediateDriverManager = async (req, res) => {
 
         if (driver.category === 'intermediate') {
             console.log('[getOrdersForIntermediateDriverManager] Fetching vehicles for driver ID:', driver.id);
-            const vehicles = await drizzle
-                .select({ id: vehicle.id })
-                .from(vehicle)
-                .where(eq(vehicle.drivermanagerId, driver.id));
+            const vehicles = await prisma.vehicle.findMany({
+                where: { drivermanagerId: driver.id },
+                select: { id: true }
+            });
             const vehicleIds = vehicles.map(v => v.id);
             console.log('[getOrdersForIntermediateDriverManager] Vehicles found:', vehicleIds);
 
             if (vehicleIds.length > 0) {
                 console.log('[getOrdersForIntermediateDriverManager] Fetching orders for vehicles');
-                orders = await drizzle
-                    .select()
-                    .from(order)
-                    .where(inArray(order.vehicleId, vehicleIds));
+                orders = await prisma.order.findMany({
+                    where: {
+                        vehicleId: { in: vehicleIds }
+                    }
+                });
                 console.log('[getOrdersForIntermediateDriverManager] Orders found:', orders.length);
             } else {
                 console.log('[getOrdersForIntermediateDriverManager] No vehicles found');
@@ -540,19 +528,18 @@ export const getOrdersForIntermediateDriverManager = async (req, res) => {
         const ordersWithProducts = await Promise.all(
             (orders || []).map(async (ord) => {
                 console.log('[getOrdersForIntermediateDriverManager] Fetching items for order ID:', ord.id);
-                const items = await drizzle
-                    .select({
-                        id: orderItem.id,
-                        orderId: orderItem.orderId,
-                        productId: orderItem.productId,
-                        quantity: orderItem.quantity,
-                        productTitle: product.title,
-                        productDescription: product.description,
-                        productPrice: product.price,
-                    })
-                    .from(orderItem)
-                    .leftJoin(product, eq(orderItem.productId, product.id))
-                    .where(eq(orderItem.orderId, ord.id));
+                const items = await prisma.orderItem.findMany({
+                    where: { orderId: ord.id },
+                    include: {
+                        product: {
+                            select: {
+                                title: true,
+                                description: true,
+                                price: true
+                            }
+                        }
+                    }
+                });
                 console.log('[getOrdersForIntermediateDriverManager] Items fetched for order', ord.id, ':', items.length);
 
                 return {
@@ -580,10 +567,9 @@ export const getAllShopsUnderIntermediateHubManager = async (req, res) => {
         console.log('[getAllShopsUnderIntermediateHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllShopsUnderIntermediateHubManager] Fetching shops');
-        const shops = await drizzle
-            .select()
-            .from(shop)
-            .where(eq(shop.hubmanagerId, manager.id));
+        const shops = await prisma.shop.findMany({
+            where: { hubmanagerId: manager.id }
+        });
         console.log('[getAllShopsUnderIntermediateHubManager] Shops found:', shops.length);
 
         console.log('[getAllShopsUnderIntermediateHubManager] Sending success response');
@@ -604,10 +590,9 @@ export const getAllDriverManagerUnderIntermediateHubManager = async (req, res) =
         console.log('[getAllDriverManagerUnderIntermediateHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllDriverManagerUnderIntermediateHubManager] Fetching driver managers');
-        const drivers = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.hubmanagerId, manager.id));
+        const drivers = await prisma.driverManager.findMany({
+            where: { hubmanagerId: manager.id }
+        });
         console.log('[getAllDriverManagerUnderIntermediateHubManager] Driver managers found:', drivers.length);
 
         console.log('[getAllDriverManagerUnderIntermediateHubManager] Sending success response');
@@ -628,20 +613,21 @@ export const getAllDriverManagerUnderMainHubManager = async (req, res) => {
         console.log('[getAllDriverManagerUnderMainHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllDriverManagerUnderMainHubManager] Fetching intermediate managers');
-        const intermediateManagers = await drizzle
-            .select({ id: hubManager.id })
-            .from(hubManager)
-            .where(eq(hubManager.mainHubManagerId, manager.id));
+        const intermediateManagers = await prisma.hubManager.findMany({
+            where: { mainHubManagerId: manager.id },
+            select: { id: true }
+        });
         const intermediateManagerIds = intermediateManagers.map(m => m.id);
         console.log('[getAllDriverManagerUnderMainHubManager] Intermediate manager IDs:', intermediateManagerIds);
 
         let drivers = [];
         if (intermediateManagerIds.length > 0) {
             console.log('[getAllDriverManagerUnderMainHubManager] Fetching driver managers');
-            drivers = await drizzle
-                .select()
-                .from(driverManager)
-                .where(inArray(driverManager.hubmanagerId, intermediateManagerIds));
+            drivers = await prisma.driverManager.findMany({
+                where: {
+                    hubmanagerId: { in: intermediateManagerIds }
+                }
+            });
             console.log('[getAllDriverManagerUnderMainHubManager] Driver managers found:', drivers.length);
         } else {
             console.log('[getAllDriverManagerUnderMainHubManager] No intermediate managers found');
@@ -665,10 +651,9 @@ export const getAllIntermediateHubManagerUnderMainHubManager = async (req, res) 
         console.log('[getAllIntermediateHubManagerUnderMainHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllIntermediateHubManagerUnderMainHubManager] Fetching intermediate managers');
-        const intermediateManagers = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.mainHubManagerId, manager.id));
+        const intermediateManagers = await prisma.hubManager.findMany({
+            where: { mainHubManagerId: manager.id }
+        });
         console.log('[getAllIntermediateHubManagerUnderMainHubManager] Intermediate managers found:', intermediateManagers.length);
 
         console.log('[getAllIntermediateHubManagerUnderMainHubManager] Sending success response');
@@ -689,10 +674,9 @@ export const getAllProductsUnderIntermediateHubManager = async (req, res) => {
         console.log('[getAllProductsUnderIntermediateHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllProductsUnderIntermediateHubManager] Fetching products');
-        const products = await drizzle
-            .select()
-            .from(product)
-            .where(eq(product.hubmanagerId, manager.id));
+        const products = await prisma.product.findMany({
+            where: { hubmanagerId: manager.id }
+        });
         console.log('[getAllProductsUnderIntermediateHubManager] Products found:', products.length);
 
         console.log('[getAllProductsUnderIntermediateHubManager] Sending success response');
@@ -713,10 +697,9 @@ export const getAllVehicleUnderIntermediateHubManager = async (req, res) => {
         console.log('[getAllVehicleUnderIntermediateHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllVehicleUnderIntermediateHubManager] Fetching vehicles');
-        const vehicles = await drizzle
-            .select()
-            .from(vehicle)
-            .where(eq(vehicle.hubmanagerId, manager.id));
+        const vehicles = await prisma.vehicle.findMany({
+            where: { hubmanagerId: manager.id }
+        });
         console.log('[getAllVehicleUnderIntermediateHubManager] Vehicles found:', vehicles.length);
 
         console.log('[getAllVehicleUnderIntermediateHubManager] Sending success response');
@@ -737,20 +720,21 @@ export const getAllVehicleUnderMainHubManager = async (req, res) => {
         console.log('[getAllVehicleUnderMainHubManager] Manager ID:', manager?.id);
 
         console.log('[getAllVehicleUnderMainHubManager] Fetching intermediate managers');
-        const intermediateManagers = await drizzle
-            .select({ id: hubManager.id })
-            .from(hubManager)
-            .where(eq(hubManager.mainHubManagerId, manager.id));
+        const intermediateManagers = await prisma.hubManager.findMany({
+            where: { mainHubManagerId: manager.id },
+            select: { id: true }
+        });
         const intermediateManagerIds = intermediateManagers.map(m => m.id);
         console.log('[getAllVehicleUnderMainHubManager] Intermediate manager IDs:', intermediateManagerIds);
 
         let vehicles = [];
         if (intermediateManagerIds.length > 0) {
             console.log('[getAllVehicleUnderMainHubManager] Fetching vehicles');
-            vehicles = await drizzle
-                .select()
-                .from(vehicle)
-                .where(inArray(vehicle.hubmanagerId, intermediateManagerIds));
+            vehicles = await prisma.vehicle.findMany({
+                where: {
+                    hubmanagerId: { in: intermediateManagerIds }
+                }
+            });
             console.log('[getAllVehicleUnderMainHubManager] Vehicles found:', vehicles.length);
         } else {
             console.log('[getAllVehicleUnderMainHubManager] No intermediate managers found');

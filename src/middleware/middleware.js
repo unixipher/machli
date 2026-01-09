@@ -1,6 +1,4 @@
-import { drizzle } from '../drizzle/index.js';
-import { driverManager, hubManager } from '../drizzle/schema.js';
-import { eq } from 'drizzle-orm';
+import prisma from '../lib/prisma.js';
 
 const error = (err, res, status = 500) => {
     console.error('[error] Sending error response:', { error: err, status });
@@ -34,11 +32,9 @@ const authenticateIntermediateHubManager = async (req, res, next) => {
         }
         const token = authHeader.substring(7);
         console.log('[authenticateIntermediateHubManager] Fetching manager with token');
-        const [manager] = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.token, token))
-            .limit(1);
+        const manager = await prisma.hubManager.findUnique({
+            where: { token }
+        });
         console.log('[authenticateIntermediateHubManager] Manager found:', !!manager, 'Category:', manager?.hubmanagerCategory);
         if (!manager) {
             console.log('[authenticateIntermediateHubManager] Invalid token');
@@ -79,11 +75,9 @@ const authenticateMainHubManager = async (req, res, next) => {
         }
         const token = authHeader.substring(7);
         console.log('[authenticateMainHubManager] Fetching manager with token');
-        const [manager] = await drizzle
-            .select()
-            .from(hubManager)
-            .where(eq(hubManager.token, token))
-            .limit(1);
+        const manager = await prisma.hubManager.findUnique({
+            where: { token }
+        });
         console.log('[authenticateMainHubManager] Manager found:', !!manager, 'Category:', manager?.hubmanagerCategory);
         if (!manager) {
             console.log('[authenticateMainHubManager] Invalid token');
@@ -125,11 +119,9 @@ const authenticateIntermediateDriverManager = async (req, res, next) => {
         }
         const token = authHeader.substring(7);
         console.log('[authenticateIntermediateDriverManager] Fetching driver with token');
-        const [driver] = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.token, token))
-            .limit(1);
+        const driver = await prisma.driverManager.findUnique({
+            where: { token }
+        });
         console.log('[authenticateIntermediateDriverManager] Driver found:', !!driver, 'Category:', driver?.category);
         if (!driver) {
             console.log('[authenticateIntermediateDriverManager] Invalid token');
@@ -170,11 +162,9 @@ const authenticateMainDriverManager = async (req, res, next) => {
         }
         const token = authHeader.substring(7);
         console.log('[authenticateMainDriverManager] Fetching driver with token');
-        const [driver] = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.token, token))
-            .limit(1);
+        const driver = await prisma.driverManager.findUnique({
+            where: { token }
+        });
         console.log('[authenticateMainDriverManager] Driver found:', !!driver, 'Category:', driver?.category);
         if (!driver) {
             console.log('[authenticateMainDriverManager] Invalid token');

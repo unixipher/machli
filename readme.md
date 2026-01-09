@@ -1,821 +1,608 @@
-# Machli API Documentation
+# API Testing Guide with cURL
 
-## Base URL
-```
-https://machli-3kcb.onrender.com
-```
+Base URL: `http://localhost:3000`
+
+## Table of Contents
+1. [Health Check](#health-check)
+2. [Authentication Flow](#authentication-flow)
+3. [Public Routes](#public-routes)
+4. [Intermediate Hub Manager Routes](#intermediate-hub-manager-routes)
+5. [Main Hub Manager Routes](#main-hub-manager-routes)
+6. [Driver Manager Routes](#driver-manager-routes)
 
 ---
 
 ## Health Check
 
-### Check API Health
 ```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/' \
-  --header 'Content-Type: application/json'
-```
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "uptime": 123.456,
-  "message": "Health check successful",
-  "timestamp": 1736064000000
-}
+curl -X GET http://localhost:3000/
 ```
 
 ---
 
-## Public Routes (No Authentication Required)
+## Authentication Flow
 
-### Create Hub Manager
+### 1. Request OTP
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createHubManager' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "name": "Mrinmoy Halder",
-  "email": "mrinmoyhalder859@gmail.com",
-  "phone": "919330218705",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4",
-  "hubmanagerCategory": "main"
-}'
+# Request OTP for hub manager
+curl -X POST http://localhost:3000/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "hubmanager@example.com"
+  }'
+
+# Request OTP for driver manager
+curl -X POST http://localhost:3000/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "driver@example.com"
+  }'
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "Mrinmoy Halder",
-    "email": "mrinmoyhalder859@gmail.com",
-    "phone": "919330218705",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4",
-    "createdAt": "2026-01-05T06:11:31.861Z",
+### 2. Verify OTP
+```bash
+curl -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "hubmanager@example.com",
+    "otp": "123456"
+  }'
+```
+
+### 3. Create Main Hub Manager (after OTP verification)
+```bash
+curl -X POST http://localhost:3000/createHubManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Main Hub Manager",
+    "email": "main.hub@example.com",
+    "phone": "+1234567890",
     "hubmanagerCategory": "main",
-    "mainHubManagerId": null,
-    "updatedAt": "2026-01-05T06:11:31.861Z"
-  }
-}
+    "address": "123 Main Street, City",
+    "geoLat": 40.7128,
+    "geoLng": -74.0060
+  }'
 ```
 
-### Create Intermediate Hub Manager
+**Response:** Save the `token` for authenticated requests
+
+### 4. Create Intermediate Hub Manager
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createHubManager' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "name": "Deepan Sadhukhan",
-  "email": "sadhukhandeepan@gmail.com",
-  "phone": "917003574257",
-  "hubmanagerCategory": "intermediate",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo",
-  "mainHubManagerId": 1
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 2,
-    "name": "Deepan Sadhukhan",
-    "email": "sadhukhandeepan@gmail.com",
-    "phone": "917003574257",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo",
-    "createdAt": "2026-01-05T06:16:26.864Z",
+curl -X POST http://localhost:3000/createHubManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Intermediate Hub Manager",
+    "email": "intermediate.hub@example.com",
+    "phone": "+1234567891",
     "hubmanagerCategory": "intermediate",
     "mainHubManagerId": 1,
-    "updatedAt": "2026-01-05T06:16:26.864Z"
-  }
-}
+    "address": "456 Second Street, City",
+    "geoLat": 40.7589,
+    "geoLng": -73.9851
+  }'
 ```
 
-### Create Vehicle
+**Note:** Replace `mainHubManagerId` with actual main hub manager ID
+
+### 5. Create Driver Manager
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createVehicle' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "vehicleNumber": "WB-01-AB-1234",
-  "vehicleType": "truck",
-  "capacity": 1000,
-  "metadata": {
-    "make": "Tata",
-    "model": "ACE",
-    "year": 2023
-  }
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "vehicleNumber": "WB-01-AB-1234",
-    "vehicleType": "truck",
-    "capacity": 1000,
-    "metadata": {
-      "make": "Tata",
-      "model": "ACE",
-      "year": 2023
-    },
-    "createdAt": "2026-01-05T09:00:00.000Z",
-    "updatedAt": "2026-01-05T09:00:00.000Z"
-  }
-}
-```
-
-### Create Driver Manager
-```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createDriverManager' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "name": "Farhan Anis",
-  "email": "farhan@gmail.com",
-  "phone": "91122334455",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRmFyaGFuIEFuaXMiLCJlbWFpbCI6ImZhcmhhbkBnbWFpbC5jb20iLCJwaG9uZSI6IjkxMTIyMzM0NDU1IiwiY2F0ZWdvcnkiOiJtYWluIn0.9BkyJJ6AypEXPZT4E2UVrcK0iGZPLNsFbbNzccfErHc",
-  "category": "main"
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "Farhan Anis",
-    "email": "farhan@gmail.com",
-    "status": "available",
-    "phone": "91122334455",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRmFyaGFuIEFuaXMiLCJlbWFpbCI6ImZhcmhhbkBnbWFpbC5jb20iLCJwaG9uZSI6IjkxMTIyMzM0NDU1IiwiY2F0ZWdvcnkiOiJtYWluIn0.9BkyJJ6AypEXPZT4E2UVrcK0iGZPLNsFbbNzccfErHc",
+# Main Driver Manager
+curl -X POST http://localhost:3000/createDriverManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Main Driver Manager",
+    "email": "main.driver@example.com",
+    "phone": "+1234567892",
     "category": "main",
-    "createdAt": "2026-01-05T09:23:25.499Z",
-    "updatedAt": "2026-01-05T09:23:25.499Z"
-  }
-}
+    "hubmanagerId": 2,
+    "address": "789 Third Street, City",
+    "geoLat": 40.7480,
+    "geoLng": -73.9862
+  }'
+
+# Intermediate Driver Manager
+curl -X POST http://localhost:3000/createDriverManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Intermediate Driver Manager",
+    "email": "intermediate.driver@example.com",
+    "phone": "+1234567893",
+    "category": "intermediate",
+    "hubmanagerId": 2,
+    "address": "101 Fourth Street, City",
+    "geoLat": 40.7614,
+    "geoLng": -73.9776
+  }'
+```
+
+---
+
+## Public Routes
+
+### Get All Hub Managers (Main Only)
+```bash
+curl -X GET http://localhost:3000/getAllHubManagers
 ```
 
 ---
 
 ## Intermediate Hub Manager Routes
-**Authorization Required:** Bearer Token (Intermediate Hub Manager)
+
+**Set your token as environment variable:**
+```bash
+export INT_HUB_TOKEN="your_intermediate_hub_manager_token_here"
+```
+
+### Get Profile Info
+```bash
+curl -X GET http://localhost:3000/getIntermediateHubManagerProfileInfo \
+  -H "Authorization: Bearer $INT_HUB_TOKEN"
+```
 
 ### Create Shop
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createShop' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "name": "Babulal Machli",
-  "phone": "919876543210",
-  "address": "31, Bamangachi, Salkia, Howrah, West Bengal 711101",
-  "geoLat": 22.600811,
-  "geoLng": 88.329695
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "Babulal Machli",
-    "phone": "919876543210",
-    "geoLat": 22.600811,
-    "geoLng": 88.3297,
-    "address": "31, Bamangachi, Salkia, Howrah, West Bengal 711101",
-    "createdAt": "2026-01-05T06:21:13.892Z",
-    "updatedAt": "2026-01-05T06:21:13.892Z"
-  }
-}
-```
-
-### Get Intermediate Hub Manager Profile Info
-```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getIntermediateHubManagerProfileInfo' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 2,
-    "name": "Deepan Sadhukhan",
-    "email": "sadhukhandeepan@gmail.com",
-    "phone": "917003574257",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo",
-    "hubmanagerCategory": "intermediate",
-    "mainHubManagerId": 1,
-    "createdAt": "2026-01-05T06:16:26.864Z",
-    "updatedAt": "2026-01-05T06:16:26.864Z"
-  }
-}
-```
-
-### Create Order
-```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createOrder' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "shopId": 1,
-  "items": [
-    {
-      "productId": 1,
-      "quantity": 10
-    }
-  ],
-  "metadata": {
-    "location": "Malda Town West Bengal"
-  },
-  "deliveryDate": "2026-01-06"
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "shopId": 1,
-    "hubmanagerId": 2,
-    "metadata": {
-      "location": "Malda Town West Bengal"
-    },
-    "status": "pending",
-    "deliveryDate": "2026-01-06T00:00:00.000Z",
-    "createdAt": "2026-01-05T06:59:54.969Z",
-    "updatedAt": "2026-01-05T06:59:54.969Z",
-    "items": [
-      {
-        "id": 1,
-        "orderId": 1,
-        "productId": 1,
-        "quantity": 10,
-        "createdAt": "2026-01-05T06:59:55.071Z",
-        "updatedAt": "2026-01-05T06:59:55.071Z"
-      }
-    ]
-  }
-}
-```
-
-### Get All Shops Under Intermediate Hub Manager
-```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getAllShopsUnderIntermediateHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "Babulal Machli",
-      "phone": "919876543210",
-      "geoLat": 22.600811,
-      "geoLng": 88.3297,
-      "address": "31, Bamangachi, Salkia, Howrah, West Bengal 711101",
-      "createdAt": "2026-01-05T06:21:13.892Z",
-      "updatedAt": "2026-01-05T06:21:13.892Z"
-    }
-  ]
-}
-```
-
-### Get All Driver Managers Under Intermediate Hub Manager
-```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getAllDriverManagerUnderIntermediateHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 2,
-      "name": "Ravi Kumar",
-      "email": "ravi@gmail.com",
-      "status": "available",
-      "phone": "91998877665",
-      "category": "intermediate",
-      "createdAt": "2026-01-05T10:00:00.000Z",
-      "updatedAt": "2026-01-05T10:00:00.000Z"
-    }
-  ]
-}
-```
-
-### Get All Orders for Intermediate Hub Manager
-```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getAllOrdersForIntermediateHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "shopId": 1,
-      "hubmanagerId": 2,
-      "metadata": {
-        "location": "Malda Town West Bengal"
-      },
-      "status": "pending",
-      "deliveryDate": "2026-01-06T00:00:00.000Z",
-      "createdAt": "2026-01-05T06:59:54.969Z",
-      "updatedAt": "2026-01-05T06:59:54.969Z"
-    },
-    {
-      "id": 2,
-      "shopId": 1,
-      "hubmanagerId": 2,
-      "metadata": {
-        "location": "Malda Town West Bengal"
-      },
-      "status": "pending",
-      "deliveryDate": "2026-01-07T00:00:00.000Z",
-      "createdAt": "2026-01-05T07:02:20.294Z",
-      "updatedAt": "2026-01-05T07:02:20.294Z"
-    }
-  ]
-}
-```
-
-### Update Order for Intermediate Hub Manager
-```bash
-curl -X PUT \
-  'https://machli-3kcb.onrender.com/updateOrderForIntermediateHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "orderId": 1,
-  "status": "in_transit",
-  "metadata": {
-    "location": "Order is on the way at Hooghly"
-  }
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "shopId": 1,
-    "hubmanagerId": 2,
-    "metadata": {
-      "location": "Order is on the way at Hooghly"
-    },
-    "status": "in_transit",
-    "deliveryDate": "2026-01-06T00:00:00.000Z",
-    "createdAt": "2026-01-05T06:59:54.969Z",
-    "updatedAt": "2026-01-05T07:14:07.486Z"
-  }
-}
+curl -X POST http://localhost:3000/createShop \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Fresh Mart",
+    "phone": "+1234567894",
+    "address": "123 Shop Street",
+    "geoLat": 40.7580,
+    "geoLng": -73.9855
+  }'
 ```
 
 ### Create Product
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/createProduct' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "title": "Hilsha Fish",
-  "description": "Hilsha Fish from the waters of Bangladesh",
-  "price": 350,
-  "quantity": 100,
-  "metadata": {
-    "category": "Fish",
-    "origin": "Bangladesh"
-  }
-}'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "title": "Hilsha Fish",
-    "description": "Hilsha Fish from the waters of Bangladesh",
-    "price": 350,
+curl -X POST http://localhost:3000/createProduct \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Fresh Apples",
+    "description": "Organic red apples from local farms",
+    "price": 4.99,
     "quantity": 100,
     "metadata": {
-      "category": "Fish",
-      "origin": "Bangladesh"
-    },
-    "createdAt": "2026-01-05T06:50:00.000Z",
-    "updatedAt": "2026-01-05T06:50:00.000Z"
-  }
-}
+      "category": "fruits",
+      "origin": "local"
+    }
+  }'
 ```
 
-### Allocate Vehicle to Order (Intermediate Hub Manager)
+### Create Vehicle
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/allocateVehicletoOrderViaIntermediateHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "orderId": 1,
-  "vehicleId": 2
-}'
+curl -X POST http://localhost:3000/createVehicleForIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "number": "VH-1234",
+    "model": "Ford Transit",
+    "capacity": 1500.5
+  }'
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
+### Create Order
+```bash
+curl -X POST http://localhost:3000/createOrder \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
     "shopId": 1,
-    "hubmanagerId": 2,
-    "vehicleId": 2,
+    "items": [
+      {
+        "productId": 1,
+        "quantity": 10
+      },
+      {
+        "productId": 2,
+        "quantity": 5
+      }
+    ],
     "metadata": {
-      "location": "Order is Cancelled"
+      "urgency": "high",
+      "notes": "Handle with care"
     },
-    "status": "in_source",
-    "deliveryDate": "2026-01-06T00:00:00.000Z",
-    "createdAt": "2026-01-05T06:59:54.969Z",
-    "updatedAt": "2026-01-05T08:48:09.008Z"
-  }
-}
+    "deliveryDate": "2026-01-15T10:00:00Z"
+  }'
 ```
 
-### Allocate Driver Manager to Vehicle (Intermediate Hub Manager)
+### Allocate Vehicle to Order
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/allocateDriverManagertoVehicleViaIntermediateHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRGVlcGFuIFNhZGh1a2hhbiIsImVtYWlsIjoic2FkaHVraGFuZGVlcGFuQGdtYWlsLmNvbSIsInBob25lIjoiOTE3MDAzNTc0MjU3IiwiaHVibWFuYWdlckNhdGVnb3J5IjoiaW50ZXJtZWRpYXRlIiwibWFpbkh1Yk1hbmFnZXJJZCI6MX0.uz2lDvFmis2W1cpm6UaqkAFY4pUPciPOIxVhA2mfbpo' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "vehicleId": 2,
-  "driverManagerId": 3
-}'
+curl -X POST http://localhost:3000/allocateVehicletoOrderViaIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": 1,
+    "vehicleId": 1
+  }'
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 2,
-    "vehicleNumber": "WB-02-CD-5678",
-    "vehicleType": "van",
-    "capacity": 500,
-    "driverManagerId": 3,
-    "metadata": {},
-    "createdAt": "2026-01-05T10:00:00.000Z",
-    "updatedAt": "2026-01-05T10:30:00.000Z"
-  }
-}
+### Allocate Driver Manager to Vehicle
+```bash
+curl -X POST http://localhost:3000/allocateDriverManagertoVehicleViaIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vehicleId": 1,
+    "driverManagerId": 1
+  }'
+```
+
+### Get All Shops
+```bash
+curl -X GET http://localhost:3000/getAllShopsUnderIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN"
+```
+
+### Get All Driver Managers
+```bash
+curl -X GET http://localhost:3000/getAllDriverManagerUnderIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN"
+```
+
+### Get All Orders
+```bash
+curl -X GET http://localhost:3000/getAllOrdersForIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN"
+```
+
+### Get All Products
+```bash
+curl -X GET http://localhost:3000/getAllProductsUnderIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN"
+```
+
+### Get All Vehicles
+```bash
+curl -X GET http://localhost:3000/getAllVehicleUnderIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN"
+```
+
+### Update Order
+```bash
+curl -X PUT http://localhost:3000/updateOrderForIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": 1,
+    "status": "in_transit",
+    "metadata": {
+      "updatedBy": "hub_manager",
+      "timestamp": "2026-01-10T12:00:00Z"
+    }
+  }'
 ```
 
 ---
 
 ## Main Hub Manager Routes
-**Authorization Required:** Bearer Token (Main Hub Manager)
 
-### Get All Orders for Main Hub Manager
+**Set your token as environment variable:**
 ```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getAllOrdersForMainHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json'
+export MAIN_HUB_TOKEN="your_main_hub_manager_token_here"
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "intermediateManager": {
-        "name": "Deepan Sadhukhan",
-        "email": "sadhukhandeepan@gmail.com",
-        "phone": "917003574257"
-      },
-      "orders": [
-        {
-          "id": 1,
-          "shopId": 1,
-          "hubmanagerId": 2,
-          "metadata": {
-            "location": "Malda Town West Bengal"
-          },
-          "status": "pending",
-          "deliveryDate": "2026-01-06T00:00:00.000Z",
-          "createdAt": "2026-01-05T06:59:54.969Z",
-          "updatedAt": "2026-01-05T06:59:54.969Z"
-        },
-        {
-          "id": 2,
-          "shopId": 1,
-          "hubmanagerId": 2,
-          "metadata": {
-            "location": "Malda Town West Bengal"
-          },
-          "status": "pending",
-          "deliveryDate": "2026-01-07T00:00:00.000Z",
-          "createdAt": "2026-01-05T07:02:20.294Z",
-          "updatedAt": "2026-01-05T07:02:20.294Z"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Get Main Hub Manager Profile Info
+### Get Profile Info
 ```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getMainHubManagerProfileInfo' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json'
+curl -X GET http://localhost:3000/getMainHubManagerProfileInfo \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN"
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "Mrinmoy Halder",
-    "email": "mrinmoyhalder859@gmail.com",
-    "phone": "919330218705",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4",
-    "hubmanagerCategory": "main",
-    "mainHubManagerId": null,
-    "createdAt": "2026-01-05T06:11:31.861Z",
-    "updatedAt": "2026-01-05T06:11:31.861Z"
-  }
-}
-```
-
-### Get All Driver Managers Under Main Hub Manager
+### Create Vehicle
 ```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getAllDriverManagerUnderMainHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json'
+curl -X POST http://localhost:3000/createVehicleForMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "number": "MV-5678",
+    "model": "Mercedes Sprinter",
+    "capacity": 2000.0
+  }'
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "name": "Farhan Anis",
-      "email": "farhan@gmail.com",
-      "status": "available",
-      "phone": "91122334455",
-      "category": "main",
-      "createdAt": "2026-01-05T09:23:25.499Z",
-      "updatedAt": "2026-01-05T09:23:25.499Z"
-    }
-  ]
-}
-```
-
-### Get All Intermediate Hub Managers Under Main Hub Manager
+### Get All Orders (Grouped by Intermediate Managers)
 ```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getAllIntermediateHubManagerUnderMainHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json'
+curl -X GET http://localhost:3000/getAllOrdersForMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN"
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 2,
-      "name": "Deepan Sadhukhan",
-      "email": "sadhukhandeepan@gmail.com",
-      "phone": "917003574257",
-      "hubmanagerCategory": "intermediate",
-      "mainHubManagerId": 1,
-      "createdAt": "2026-01-05T06:16:26.864Z",
-      "updatedAt": "2026-01-05T06:16:26.864Z"
-    }
-  ]
-}
-```
-
-### Update Order for Main Hub Manager
+### Get All Driver Managers
 ```bash
-curl -X PUT \
-  'https://machli-3kcb.onrender.com/updateOrderForMainHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "orderId": 1,
-  "status": "delivered",
-  "metadata": {
-    "location": "Order delivered successfully"
-  }
-}'
+curl -X GET http://localhost:3000/getAllDriverManagerUnderMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN"
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "shopId": 1,
-    "hubmanagerId": 2,
-    "metadata": {
-      "location": "Order delivered successfully"
-    },
+### Get All Intermediate Hub Managers
+```bash
+curl -X GET http://localhost:3000/getAllIntermediateHubManagerUnderMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN"
+```
+
+### Get All Vehicles
+```bash
+curl -X GET http://localhost:3000/getAllVehicleUnderMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN"
+```
+
+### Update Order
+```bash
+curl -X PUT http://localhost:3000/updateOrderForMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": 1,
     "status": "delivered",
-    "deliveryDate": "2026-01-06T00:00:00.000Z",
-    "createdAt": "2026-01-05T06:59:54.969Z",
-    "updatedAt": "2026-01-05T09:00:00.000Z"
-  }
-}
+    "metadata": {
+      "deliveredBy": "main_hub",
+      "timestamp": "2026-01-11T14:00:00Z"
+    }
+  }'
 ```
 
-### Allocate Vehicle to Order (Main Hub Manager)
+### Allocate Vehicle to Order
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/allocateVehicletoOrderViaMainHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "orderId": 1,
-  "vehicleId": 1
-}'
+curl -X POST http://localhost:3000/allocateVehicletoOrderViaMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderId": 1,
+    "vehicleId": 2
+  }'
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
+### Allocate Driver Manager to Vehicle
+```bash
+curl -X POST http://localhost:3000/allocateDriverManagertoVehicleViaMainHubManager \
+  -H "Authorization: Bearer $MAIN_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vehicleId": 2,
+    "driverManagerId": 2
+  }'
+```
+
+---
+
+## Driver Manager Routes
+
+### Main Driver Manager
+
+**Set your token as environment variable:**
+```bash
+export MAIN_DRIVER_TOKEN="your_main_driver_manager_token_here"
+```
+
+#### Get Orders
+```bash
+curl -X GET http://localhost:3000/getOrdersForMainDriverManager \
+  -H "Authorization: Bearer $MAIN_DRIVER_TOKEN"
+```
+
+### Intermediate Driver Manager
+
+**Set your token as environment variable:**
+```bash
+export INT_DRIVER_TOKEN="your_intermediate_driver_manager_token_here"
+```
+
+#### Get Orders
+```bash
+curl -X GET http://localhost:3000/getOrdersForIntermediateDriverManager \
+  -H "Authorization: Bearer $INT_DRIVER_TOKEN"
+```
+
+---
+
+## Complete Testing Flow Example
+
+### Step 1: Setup Main Hub Manager
+```bash
+# 1. Request OTP
+curl -X POST http://localhost:3000/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email": "main@test.com"}'
+
+# 2. Verify OTP (check your email/console for OTP)
+curl -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email": "main@test.com", "otp": "YOUR_OTP"}'
+
+# 3. Create Main Hub Manager
+curl -X POST http://localhost:3000/createHubManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Main Hub",
+    "email": "main@test.com",
+    "phone": "+11111111111",
+    "hubmanagerCategory": "main",
+    "address": "Main Hub Address",
+    "geoLat": 40.7128,
+    "geoLng": -74.0060
+  }'
+# Save the token from response
+```
+
+### Step 2: Setup Intermediate Hub Manager
+```bash
+# 1. Request OTP
+curl -X POST http://localhost:3000/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email": "intermediate@test.com"}'
+
+# 2. Verify OTP
+curl -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email": "intermediate@test.com", "otp": "YOUR_OTP"}'
+
+# 3. Create Intermediate Hub Manager (use mainHubManagerId from step 1)
+curl -X POST http://localhost:3000/createHubManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Intermediate Hub",
+    "email": "intermediate@test.com",
+    "phone": "+12222222222",
+    "hubmanagerCategory": "intermediate",
+    "mainHubManagerId": 1,
+    "address": "Intermediate Hub Address",
+    "geoLat": 40.7589,
+    "geoLng": -73.9851
+  }'
+# Save the token
+```
+
+### Step 3: Create Products
+```bash
+export INT_HUB_TOKEN="intermediate_hub_token_from_step_2"
+
+curl -X POST http://localhost:3000/createProduct \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Product 1",
+    "description": "Test product",
+    "price": 10.99,
+    "quantity": 50
+  }'
+```
+
+### Step 4: Create Shop
+```bash
+curl -X POST http://localhost:3000/createShop \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test Shop",
+    "phone": "+13333333333",
+    "address": "Shop Address",
+    "geoLat": 40.7580,
+    "geoLng": -73.9855
+  }'
+```
+
+### Step 5: Create Order
+```bash
+curl -X POST http://localhost:3000/createOrder \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
     "shopId": 1,
+    "items": [{"productId": 1, "quantity": 5}]
+  }'
+```
+
+### Step 6: Create Vehicle and Driver
+```bash
+# Create vehicle
+curl -X POST http://localhost:3000/createVehicleForIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "number": "TEST-001",
+    "model": "Test Model",
+    "capacity": 1000
+  }'
+
+# Create driver (after OTP verification)
+curl -X POST http://localhost:3000/createDriverManager \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Main Driver",
+    "email": "driver@test.com",
+    "phone": "+14444444444",
+    "category": "main",
     "hubmanagerId": 2,
-    "vehicleId": 1,
-    "metadata": {
-      "location": "Order is Cancelled"
-    },
-    "status": "in_source",
-    "deliveryDate": "2026-01-06T00:00:00.000Z",
-    "createdAt": "2026-01-05T06:59:54.969Z",
-    "updatedAt": "2026-01-05T08:43:14.085Z"
-  }
-}
+    "address": "Driver Address",
+    "geoLat": 40.7480,
+    "geoLng": -73.9862
+  }'
 ```
 
-### Allocate Driver Manager to Vehicle (Main Hub Manager)
+### Step 7: Allocate Vehicle and Driver to Order
 ```bash
-curl -X POST \
-  'https://machli-3kcb.onrender.com/allocateDriverManagertoVehicleViaMainHubManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTXJpbm1veSBIYWxkZXIiLCJlbWFpbCI6Im1yaW5tb3loYWxkZXI4NTlAZ21haWwuY29tIiwicGhvbmUiOiI5MTkzMzAyMTg3MDUiLCJodWJtYW5hZ2VyQ2F0ZWdvcnkiOiJtYWluIn0.BeYztjGzQOGLgOZf2YoGvKwcRXJiEeYVF-Lkqt02XN4' \
-  --header 'Content-Type: application/json' \
-  --data-raw '{
-  "vehicleId": 1,
-  "driverManagerId": 1
-}'
-```
+# Allocate vehicle to order
+curl -X POST http://localhost:3000/allocateVehicletoOrderViaIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"orderId": 1, "vehicleId": 1}'
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "vehicleNumber": "WB-01-AB-1234",
-    "vehicleType": "truck",
-    "capacity": 1000,
-    "driverManagerId": 1,
-    "metadata": {
-      "make": "Tata",
-      "model": "ACE",
-      "year": 2023
-    },
-    "createdAt": "2026-01-05T09:00:00.000Z",
-    "updatedAt": "2026-01-05T09:30:00.000Z"
-  }
-}
+# Allocate driver to vehicle
+curl -X POST http://localhost:3000/allocateDriverManagertoVehicleViaIntermediateHubManager \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"vehicleId": 1, "driverManagerId": 1}'
 ```
 
 ---
 
-## Main Driver Manager Routes
-**Authorization Required:** Bearer Token (Main Driver Manager)
+## Order Status Values
+- `created` - Initial state
+- `pending` - Awaiting processing
+- `in_transit` - In transit to destination
+- `in_source` - At source location
+- `in_hub` - At hub
+- `delivered` - Successfully delivered
+- `cancelled` - Order cancelled
 
-### Get Orders for Main Driver Manager
+## Vehicle Status Values
+- `available` - Available for allocation
+- `occupied` - Currently allocated
+
+## Driver Manager Status Values
+- `available` - Available for work
+- `occupied` - Currently assigned to vehicle
+
+## Manager Categories
+- **Hub Manager:** `main` or `intermediate`
+- **Driver Manager:** `main` or `intermediate`
+
+---
+
+## Error Handling Examples
+
+### Unauthorized Access
 ```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getOrdersForMainDriverManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRmFyaGFuIEFuaXMiLCJlbWFpbCI6ImZhcmhhbkBnbWFpbC5jb20iLCJwaG9uZSI6IjkxMTIyMzM0NDU1IiwiY2F0ZWdvcnkiOiJtYWluIn0.9BkyJJ6AypEXPZT4E2UVrcK0iGZPLNsFbbNzccfErHc' \
-  --header 'Content-Type: application/json'
+# Without token
+curl -X GET http://localhost:3000/getIntermediateHubManagerProfileInfo
+# Response: 401 Unauthorized
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 1,
-      "shopId": 1,
-      "hubmanagerId": 2,
-      "vehicleId": 2,
-      "metadata": {
-        "location": "Order is Cancelled"
-      },
-      "status": "in_source",
-      "deliveryDate": "2026-01-06T00:00:00.000Z",
-      "createdAt": "2026-01-05T06:59:54.969Z",
-      "updatedAt": "2026-01-05T08:48:09.008Z"
-    }
-  ]
-}
+### Invalid Token
+```bash
+curl -X GET http://localhost:3000/getIntermediateHubManagerProfileInfo \
+  -H "Authorization: Bearer invalid_token"
+# Response: 401 Unauthorized
+```
+
+### Missing Required Fields
+```bash
+curl -X POST http://localhost:3000/createShop \
+  -H "Authorization: Bearer $INT_HUB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Incomplete Shop"}'
+# Response: 400 Bad Request
 ```
 
 ---
 
-## Intermediate Driver Manager Routes
-**Authorization Required:** Bearer Token (Intermediate Driver Manager)
+## Tips for Testing
 
-### Get Orders for Intermediate Driver Manager
-```bash
-curl -X GET \
-  'https://machli-3kcb.onrender.com/getOrdersForIntermediateDriverManager' \
-  --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiUmF2aSBLdW1hciIsImVtYWlsIjoicmF2aUBnbWFpbC5jb20iLCJwaG9uZSI6IjkxOTk4ODc3NjY1IiwiY2F0ZWdvcnkiOiJpbnRlcm1lZGlhdGUifQ.AbCdEfGhIjKlMnOpQrStUvWxYz1234567890' \
-  --header 'Content-Type: application/json'
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "id": 2,
-      "shopId": 1,
-      "hubmanagerId": 2,
-      "vehicleId": 3,
-      "metadata": {
-        "location": "Order in transit"
-      },
-      "status": "in_transit",
-      "deliveryDate": "2026-01-07T00:00:00.000Z",
-      "createdAt": "2026-01-05T07:02:20.294Z",
-      "updatedAt": "2026-01-05T10:00:00.000Z"
-    }
-  ]
-}
-```
+1. **Save tokens:** Export tokens as environment variables for easier testing
+2. **Check logs:** Server logs provide detailed information about each request
+3. **Sequential testing:** Follow the complete flow example for end-to-end testing
+4. **Database state:** Remember that some operations require specific database states
+5. **OTP verification:** Check console/email for OTP codes during authentication
+6. **Pretty print JSON:** Add `-s | jq` to curl commands for formatted output:
+   ```bash
+   curl -s http://localhost:3000/ | jq
+   ```
 
 ---
 
-## Notes
+## Testing with Prisma Studio
 
-- Replace the bearer tokens with your actual JWT tokens
-- All timestamps are in ISO 8601 format
-- The base URL can be changed to `http://localhost:3000` for local development
-- Status values for orders: `pending`, `in_transit`, `in_source`, `delivered`, `cancelled`
-- Driver Manager categories: `main`, `intermediate`
-- Hub Manager categories: `main`, `intermediate`
+You can also view/edit data using Prisma Studio:
+```bash
+npm run db:studio
+```
+This opens a web interface at `http://localhost:5555` to browse and edit your database.

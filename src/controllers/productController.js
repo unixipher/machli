@@ -1,5 +1,4 @@
-import { drizzle } from '../drizzle/index.js';
-import { product } from '../drizzle/schema.js';
+import prisma from '../lib/prisma.js';
 import { error } from '../middleware/middleware.js';
 
 export const createProduct = async (req, res) => {
@@ -14,17 +13,16 @@ export const createProduct = async (req, res) => {
         }
 
         console.log('[createProduct] Inserting new product');
-        const [newProduct] = await drizzle
-            .insert(product)
-            .values({
+        const newProduct = await prisma.product.create({
+            data: {
                 title,
                 description,
                 price,
                 hubmanagerId: req.manager.id,
                 metadata: metadata || null,
                 quantity
-            })
-            .returning();
+            }
+        });
         console.log('[createProduct] Product created, ID:', newProduct.id);
 
         console.log('[createProduct] Sending success response');

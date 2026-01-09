@@ -1,7 +1,5 @@
-import { drizzle } from '../drizzle/index.js';
-import { vehicle, order, driverManager } from '../drizzle/schema.js';
+import prisma from '../lib/prisma.js';
 import { error } from '../middleware/middleware.js';
-import { eq } from 'drizzle-orm';
 
 export const createVehicle = async (req, res) => {
     console.log('[createVehicle] Function entry');
@@ -15,16 +13,15 @@ export const createVehicle = async (req, res) => {
     }
     try {
         console.log('[createVehicle] Inserting new vehicle');
-        const [newVehicle] = await drizzle
-            .insert(vehicle)
-            .values({
+        const newVehicle = await prisma.vehicle.create({
+            data: {
                 number,
                 model,
                 status: 'available',
                 capacity: parseFloat(capacity),
                 hubmanagerId: parseInt(hubmanagerId)
-            })
-            .returning();
+            }
+        });
         console.log('[createVehicle] Vehicle created, ID:', newVehicle.id);
 
         console.log('[createVehicle] Sending success response');
@@ -60,11 +57,9 @@ export const allocateVehicletoOrder = async (req, res) => {
         }
 
         console.log('[allocateVehicletoOrder] Fetching order with ID:', orderId);
-        const [existingOrder] = await drizzle
-            .select()
-            .from(order)
-            .where(eq(order.id, orderId))
-            .limit(1);
+        const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId }
+        });
         console.log('[allocateVehicletoOrder] Order found:', !!existingOrder, 'Status:', existingOrder?.status);
 
         if (!existingOrder) {
@@ -73,11 +68,9 @@ export const allocateVehicletoOrder = async (req, res) => {
         }
 
         console.log('[allocateVehicletoOrder] Fetching vehicle with ID:', vehicleId);
-        const [existingVehicle] = await drizzle
-            .select()
-            .from(vehicle)
-            .where(eq(vehicle.id, vehicleId))
-            .limit(1);
+        const existingVehicle = await prisma.vehicle.findUnique({
+            where: { id: vehicleId }
+        });
         console.log('[allocateVehicletoOrder] Vehicle found:', !!existingVehicle, 'Status:', existingVehicle?.status, 'Driver manager ID:', existingVehicle?.drivermanagerId);
 
         if (!existingVehicle) {
@@ -92,11 +85,9 @@ export const allocateVehicletoOrder = async (req, res) => {
 
         if (existingVehicle.drivermanagerId) {
             console.log('[allocateVehicletoOrder] Vehicle has driver manager, fetching driver manager details');
-            const [vehicleDriverManager] = await drizzle
-                .select()
-                .from(driverManager)
-                .where(eq(driverManager.id, existingVehicle.drivermanagerId))
-                .limit(1);
+            const vehicleDriverManager = await prisma.driverManager.findUnique({
+                where: { id: existingVehicle.drivermanagerId }
+            });
             console.log('[allocateVehicletoOrder] Driver manager found:', !!vehicleDriverManager, 'Category:', vehicleDriverManager?.category);
 
             if (vehicleDriverManager) {
@@ -116,25 +107,24 @@ export const allocateVehicletoOrder = async (req, res) => {
         }
 
         console.log('[allocateVehicletoOrder] Updating vehicle status to occupied');
-        await drizzle
-            .update(vehicle)
-            .set({
+        await prisma.vehicle.update({
+            where: { id: vehicleId },
+            data: {
                 status: 'occupied',
-                updatedAt: new Date(),
-            })
-            .where(eq(vehicle.id, vehicleId));
+                updatedAt: new Date()
+            }
+        });
         console.log('[allocateVehicletoOrder] Vehicle updated successfully');
 
         console.log('[allocateVehicletoOrder] Updating order with vehicle ID and status');
-        const [updatedOrder] = await drizzle
-            .update(order)
-            .set({
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: {
                 vehicleId,
                 status: 'in_source',
-                updatedAt: new Date(),
-            })
-            .where(eq(order.id, orderId))
-            .returning();
+                updatedAt: new Date()
+            }
+        });
         console.log('[allocateVehicletoOrder] Order updated successfully, new status:', updatedOrder.status);
 
         console.log('[allocateVehicletoOrder] Sending success response');
@@ -160,11 +150,9 @@ export const allocateDriverManagertoVehicle = async (req, res) => {
         }
 
         console.log('[allocateDriverManagertoVehicle] Fetching vehicle with ID:', vehicleId);
-        const [existingVehicle] = await drizzle
-            .select()
-            .from(vehicle)
-            .where(eq(vehicle.id, vehicleId))
-            .limit(1);
+        const existingVehicle = await prisma.vehicle.findUnique({
+            where: { id: vehicleId }
+        });
         console.log('[allocateDriverManagertoVehicle] Vehicle found:', !!existingVehicle, 'Current driver:', existingVehicle?.drivermanagerId);
 
         if (!existingVehicle) {
@@ -178,11 +166,9 @@ export const allocateDriverManagertoVehicle = async (req, res) => {
         }
 
         console.log('[allocateDriverManagertoVehicle] Fetching driver manager with ID:', driverManagerId);
-        const [existingDriverManager] = await drizzle
-            .select()
-            .from(driverManager)
-            .where(eq(driverManager.id, driverManagerId))
-            .limit(1);
+        const existingDriverManager = await prisma.driverManager.findUnique({
+            where: { id: driverManagerId }
+        });
         console.log('[allocateDriverManagertoVehicle] Driver manager found:', !!existingDriverManager, 'Status:', existingDriverManager?.status, 'Category:', existingDriverManager?.category);
 
         if (!existingDriverManager) {
@@ -196,10 +182,9 @@ export const allocateDriverManagertoVehicle = async (req, res) => {
         }
 
         console.log('[allocateDriverManagertoVehicle] Fetching orders for vehicle ID:', vehicleId);
-        const vehicleOrders = await drizzle
-            .select()
-            .from(order)
-            .where(eq(order.vehicleId, vehicleId));
+        const vehicleOrders = await prisma.order.findMany({
+            where: { vehicleId }
+        });
         console.log('[allocateDriverManagertoVehicle] Vehicle orders found:', vehicleOrders.length);
 
         if (vehicleOrders.length > 0) {
@@ -221,24 +206,23 @@ export const allocateDriverManagertoVehicle = async (req, res) => {
         }
 
         console.log('[allocateDriverManagertoVehicle] Updating driver manager status to occupied');
-        await drizzle
-            .update(driverManager)
-            .set({
+        await prisma.driverManager.update({
+            where: { id: driverManagerId },
+            data: {
                 status: 'occupied',
-                updatedAt: new Date(),
-            })
-            .where(eq(driverManager.id, driverManagerId));
+                updatedAt: new Date()
+            }
+        });
         console.log('[allocateDriverManagertoVehicle] Driver manager updated successfully');
 
         console.log('[allocateDriverManagertoVehicle] Allocating driver manager to vehicle');
-        const [updatedVehicle] = await drizzle
-            .update(vehicle)
-            .set({
+        const updatedVehicle = await prisma.vehicle.update({
+            where: { id: vehicleId },
+            data: {
                 drivermanagerId: driverManagerId,
-                updatedAt: new Date(),
-            })
-            .where(eq(vehicle.id, vehicleId))
-            .returning();
+                updatedAt: new Date()
+            }
+        });
         console.log('[allocateDriverManagertoVehicle] Vehicle updated successfully');
 
         console.log('[allocateDriverManagertoVehicle] Sending success response');

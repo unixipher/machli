@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DriverManagerCategory {
+  main
+  intermediate
+}
+
+enum HubManagerCategory {
+  main
+  intermediate
+}
+
+enum OrderStatus {
+  created
+  pending
+  in_transit
+  in_source
+  in_hub
+  delivered
+  cancelled
+}
+
+enum VehicleStatus {
+  occupied
+  available
+}
+
+enum DriverManagerStatus {
+  occupied
+  available
+}
+
+model HubManager {
+  id                       Int                @id @default(autoincrement())
+  name                     String
+  email                    String             @unique
+  phone                    String             @unique
+  token                    String             @unique
+  address                  String
+  geoLat                   Float
+  geoLng                   Float
+  createdAt                DateTime           @default(now())
+  hubmanagerCategory       HubManagerCategory
+  mainHubManagerId         Int?
+  updatedAt                DateTime           @updatedAt
+  
+  // Relations
+  driverManagers           DriverManager[]
+  shops                    Shop[]
+  orders                   Order[]
+  vehicles                 Vehicle[]
+  products                 Product[]
+  mainHubManager           HubManager?        @relation("HubManagerHierarchy", fields: [mainHubManagerId], references: [id])
+  intermediateHubManagers  HubManager[]       @relation("HubManagerHierarchy")
+}
+
+model DriverManager {
+  id            Int                   @id @default(autoincrement())
+  name          String
+  email         String                @unique
+  status        DriverManagerStatus
+  phone         String                @unique
+  hubmanagerId  Int
+  address       String
+  geoLat        Float
+  geoLng        Float
+  token         String                @unique
+  category      DriverManagerCategory
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  
+  // Relations
+  hubManager    HubManager            @relation(fields: [hubmanagerId], references: [id])
+  vehicles      Vehicle[]
+}
+
+model Shop {
+  id            Int       @id @default(autoincrement())
+  name          String
+  phone         String    @unique
+  hubmanagerId  Int
+  geoLat        Float
+  geoLng        Float
+  address       String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  hubManager    HubManager @relation(fields: [hubmanagerId], references: [id])
+  orders        Order[]
+}
+
+model Order {
+  id            Int          @id @default(autoincrement())
+  shopId        Int
+  hubmanagerId  Int
+  vehicleId     Int?
+  metadata      Json?
+  status        OrderStatus  @default(created)
+  deliveryDate  DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  shop          Shop         @relation(fields: [shopId], references: [id])
+  hubManager    HubManager   @relation(fields: [hubmanagerId], references: [id])
+  vehicle       Vehicle?     @relation(fields: [vehicleId], references: [id])
+  orderItems    OrderItem[]
+}
+
+model Vehicle {
+  id               Int            @id @default(autoincrement())
+  number           String         @unique
+  model            String
+  drivermanagerId  Int?
+  metadata         Json?
+  status           VehicleStatus
+  hubmanagerId     Int
+  capacity         Float
+  createdAt        DateTime       @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime       @updatedAt @db.Timestamp(6)
+  
+  // Relations
+  driverManager    DriverManager? @relation(fields: [drivermanagerId], references: [id])
+  hubManager       HubManager     @relation(fields: [hubmanagerId], references: [id])
+  orders           Order[]
+
+  @@map("vehicle")
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int
+  productId  Int
+  quantity   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relations
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@unique([orderId, productId], name: "unique_order_product")
+  @@map("OrderItem")
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  title         String
+  description   String
+  price         Float
+  hubmanagerId  Int
+  metadata      Json?
+  createdAt     DateTime    @default(now()) @db.Timestamp(6)
+  updatedAt     DateTime    @updatedAt @db.Timestamp(6)
+  quantity      Int
+  
+  // Relations
+  hubManager    HubManager  @relation(fields: [hubmanagerId], references: [id])
+  orderItems    OrderItem[]
+
+  @@map("Product")
+}
+
+model OTP {
+  id        Int      @id @default(autoincrement())
+  email     String
+  otp       String
+  verified  String   @default("false")
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("OTP")
+}
