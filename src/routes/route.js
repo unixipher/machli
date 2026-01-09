@@ -55,6 +55,10 @@ router.post("/allocateDriverManagertoVehicleViaMainHubManager", authenticateMain
 
 //Main Driver Manager Routes
 router.get("/getOrdersForMainDriverManager", authenticateMainDriverManager, orderController.getOrdersForMainDriverManager)
+router.put("/updateOrderViaMainDriverManager", authenticateMainDriverManager, orderController.updateOrderViaMainDriverManager)
+
 //Intermediate Driver Manager Routes
 router.get("/getOrdersForIntermediateDriverManager", authenticateIntermediateDriverManager, orderController.getOrdersForIntermediateDriverManager)
+router.put("/updateOrderViaIntermediateDriverManager", authenticateIntermediateDriverManager, orderController.updateOrderViaIntermediateDriverManager)
+
 export default router;

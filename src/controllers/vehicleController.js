@@ -48,7 +48,9 @@ export const createVehicle = async (req, res) => {
 export const allocateVehicletoOrder = async (req, res) => {
     console.log('[allocateVehicletoOrder] Function entry');
     try {
+        const manager = req.manager;
         const { orderId, vehicleId } = req.body;
+        console.log('[allocateVehicletoOrder] Manager ID:', manager?.id, 'Category:', manager?.hubmanagerCategory);
         console.log('[allocateVehicletoOrder] Request body:', { orderId, vehicleId });
 
         if (!orderId || !vehicleId) {
@@ -60,11 +62,49 @@ export const allocateVehicletoOrder = async (req, res) => {
         const existingOrder = await prisma.order.findUnique({
             where: { id: orderId }
         });
-        console.log('[allocateVehicletoOrder] Order found:', !!existingOrder, 'Status:', existingOrder?.status);
+        console.log('[allocateVehicletoOrder] Order found:', !!existingOrder, 'Status:', existingOrder?.status, 'Old vehicle ID:', existingOrder?.vehicleId);
 
         if (!existingOrder) {
             console.log('[allocateVehicletoOrder] Order not found');
             return error('Order not found', res, 404);
+        }
+
+        if (existingOrder.vehicleId) {
+            console.log('[allocateVehicletoOrder] Order has existing vehicle, fetching old vehicle ID:', existingOrder.vehicleId);
+            const oldVehicle = await prisma.vehicle.findUnique({
+                where: { id: existingOrder.vehicleId }
+            });
+            
+            if (oldVehicle) {
+                console.log('[allocateVehicletoOrder] Setting old vehicle to available, ID:', oldVehicle.id);
+                await prisma.vehicle.update({
+                    where: { id: oldVehicle.id },
+                    data: {
+                        status: 'available',
+                        updatedAt: new Date()
+                    }
+                });
+                console.log('[allocateVehicletoOrder] Old vehicle status updated to available');
+                
+                if (oldVehicle.drivermanagerId) {
+                    console.log('[allocateVehicletoOrder] Old vehicle has driver manager, fetching driver manager ID:', oldVehicle.drivermanagerId);
+                    const oldDriverManager = await prisma.driverManager.findUnique({
+                        where: { id: oldVehicle.drivermanagerId }
+                    });
+                    
+                    if (oldDriverManager) {
+                        console.log('[allocateVehicletoOrder] Setting old driver manager to available, ID:', oldDriverManager.id);
+                        await prisma.driverManager.update({
+                            where: { id: oldDriverManager.id },
+                            data: {
+                                status: 'available',
+                                updatedAt: new Date()
+                            }
+                        });
+                        console.log('[allocateVehicletoOrder] Old driver manager status updated to available');
+                    }
+                }
+            }
         }
 
         console.log('[allocateVehicletoOrder] Fetching vehicle with ID:', vehicleId);
@@ -116,12 +156,18 @@ export const allocateVehicletoOrder = async (req, res) => {
         });
         console.log('[allocateVehicletoOrder] Vehicle updated successfully');
 
+        let newOrderStatus = 'in_source';
+        if (manager.hubmanagerCategory === 'intermediate') {
+            newOrderStatus = 'in_hub';
+        }
+        console.log('[allocateVehicletoOrder] New order status based on manager category:', newOrderStatus);
+
         console.log('[allocateVehicletoOrder] Updating order with vehicle ID and status');
         const updatedOrder = await prisma.order.update({
             where: { id: orderId },
             data: {
                 vehicleId,
-                status: 'in_source',
+                status: newOrderStatus,
                 updatedAt: new Date()
             }
         });
@@ -158,11 +204,6 @@ export const allocateDriverManagertoVehicle = async (req, res) => {
         if (!existingVehicle) {
             console.log('[allocateDriverManagertoVehicle] Vehicle not found');
             return error('Vehicle not found', res, 404);
-        }
-
-        if (existingVehicle.drivermanagerId !== null) {
-            console.log('[allocateDriverManagertoVehicle] Vehicle already has driver manager:', existingVehicle.drivermanagerId);
-            return error('Vehicle already has a driver manager assigned', res, 400);
         }
 
         console.log('[allocateDriverManagertoVehicle] Fetching driver manager with ID:', driverManagerId);

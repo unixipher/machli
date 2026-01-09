@@ -342,6 +342,185 @@ export const updateOrderForIntermediateHubManager = async (req, res) => {
     }
 }
 
+export const updateOrderViaMainDriverManager = async (req, res) => {
+    console.log('[updateOrderViaMainDriverManager] Function entry');
+    try {
+        const driver = req.driver;
+        const { orderId, status, metadata } = req.body;
+        console.log('[updateOrderViaMainDriverManager] Driver ID:', driver?.id);
+        console.log('[updateOrderViaMainDriverManager] Request body:', { orderId, status, hasMetadata: !!metadata });
+
+        if (!orderId) {
+            console.log('[updateOrderViaMainDriverManager] Validation failed: orderId is required');
+            return error('orderId is required', res, 400);
+        }
+
+        console.log('[updateOrderViaMainDriverManager] Fetching order with ID:', orderId);
+        const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId }
+        });
+        console.log('[updateOrderViaMainDriverManager] Order found:', !!existingOrder);
+
+        if (!existingOrder) {
+            console.log('[updateOrderViaMainDriverManager] Order not found');
+            return error('Order not found', res, 404);
+        }
+
+        console.log('[updateOrderViaMainDriverManager] Fetching vehicles for driver ID:', driver.id);
+        const vehicles = await prisma.vehicle.findMany({
+            where: { drivermanagerId: driver.id },
+            select: { id: true }
+        });
+        const vehicleIds = vehicles.map(v => v.id);
+        console.log('[updateOrderViaMainDriverManager] Driver vehicles:', vehicleIds);
+        console.log('[updateOrderViaMainDriverManager] Order vehicleId:', existingOrder.vehicleId);
+
+        if (!existingOrder.vehicleId || !vehicleIds.includes(existingOrder.vehicleId)) {
+            console.log('[updateOrderViaMainDriverManager] Permission denied: Order does not belong to driver\'s vehicles');
+            return error('You do not have permission to update this order', res, 403);
+        }
+
+        if (status) {
+            const allowedStatuses = ['in_transit', 'in_hub'];
+            if (!allowedStatuses.includes(status)) {
+                console.log('[updateOrderViaMainDriverManager] Validation failed: Invalid status for main driver');
+                return error('Main driver managers can only update order status to: in_transit, in_hub', res, 400);
+            }
+        }
+
+        console.log('[updateOrderViaMainDriverManager] Preparing update data');
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (metadata) updateData.metadata = metadata;
+        updateData.updatedAt = new Date();
+        console.log('[updateOrderViaMainDriverManager] Update data:', updateData);
+
+        console.log('[updateOrderViaMainDriverManager] Updating order');
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: updateData
+        });
+        console.log('[updateOrderViaMainDriverManager] Order updated successfully');
+
+        console.log('[updateOrderViaMainDriverManager] Fetching order items');
+        const items = await prisma.orderItem.findMany({
+            where: { orderId: updatedOrder.id },
+            include: {
+                product: {
+                    select: {
+                        title: true,
+                        description: true,
+                        price: true
+                    }
+                }
+            }
+        });
+        console.log('[updateOrderViaMainDriverManager] Items fetched:', items.length);
+
+        console.log('[updateOrderViaMainDriverManager] Sending success response');
+        res.status(200).json({
+            success: true,
+            data: {
+                ...updatedOrder,
+                items: items || [],
+            },
+        });
+    } catch (err) {
+        console.error('[updateOrderViaMainDriverManager] Error:', err.message, err.stack);
+        error(err.message, res);
+    }
+}
+
+export const updateOrderViaIntermediateDriverManager = async (req, res) => {
+    console.log('[updateOrderViaIntermediateDriverManager] Function entry');
+    try {
+        const driver = req.driver;
+        const { orderId, status, metadata } = req.body;
+        console.log('[updateOrderViaIntermediateDriverManager] Driver ID:', driver?.id);
+        console.log('[updateOrderViaIntermediateDriverManager] Request body:', { orderId, status, hasMetadata: !!metadata });
+
+        if (!orderId) {
+            console.log('[updateOrderViaIntermediateDriverManager] Validation failed: orderId is required');
+            return error('orderId is required', res, 400);
+        }
+
+        console.log('[updateOrderViaIntermediateDriverManager] Fetching order with ID:', orderId);
+        const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId }
+        });
+        console.log('[updateOrderViaIntermediateDriverManager] Order found:', !!existingOrder);
+
+        if (!existingOrder) {
+            console.log('[updateOrderViaIntermediateDriverManager] Order not found');
+            return error('Order not found', res, 404);
+        }
+
+        console.log('[updateOrderViaIntermediateDriverManager] Fetching vehicles for driver ID:', driver.id);
+        const vehicles = await prisma.vehicle.findMany({
+            where: { drivermanagerId: driver.id },
+            select: { id: true }
+        });
+        const vehicleIds = vehicles.map(v => v.id);
+        console.log('[updateOrderViaIntermediateDriverManager] Driver vehicles:', vehicleIds);
+        console.log('[updateOrderViaIntermediateDriverManager] Order vehicleId:', existingOrder.vehicleId);
+
+        if (!existingOrder.vehicleId || !vehicleIds.includes(existingOrder.vehicleId)) {
+            console.log('[updateOrderViaIntermediateDriverManager] Permission denied: Order does not belong to driver\'s vehicles');
+            return error('You do not have permission to update this order', res, 403);
+        }
+
+        if (status) {
+            const allowedStatuses = ['in_transit', 'delivered'];
+            if (!allowedStatuses.includes(status)) {
+                console.log('[updateOrderViaIntermediateDriverManager] Validation failed: Invalid status for intermediate driver');
+                return error('Intermediate driver managers can only update order status to: in_transit, delivered', res, 400);
+            }
+        }
+
+        console.log('[updateOrderViaIntermediateDriverManager] Preparing update data');
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (metadata) updateData.metadata = metadata;
+        updateData.updatedAt = new Date();
+        console.log('[updateOrderViaIntermediateDriverManager] Update data:', updateData);
+
+        console.log('[updateOrderViaIntermediateDriverManager] Updating order');
+        const updatedOrder = await prisma.order.update({
+            where: { id: orderId },
+            data: updateData
+        });
+        console.log('[updateOrderViaIntermediateDriverManager] Order updated successfully');
+
+        console.log('[updateOrderViaIntermediateDriverManager] Fetching order items');
+        const items = await prisma.orderItem.findMany({
+            where: { orderId: updatedOrder.id },
+            include: {
+                product: {
+                    select: {
+                        title: true,
+                        description: true,
+                        price: true
+                    }
+                }
+            }
+        });
+        console.log('[updateOrderViaIntermediateDriverManager] Items fetched:', items.length);
+
+        console.log('[updateOrderViaIntermediateDriverManager] Sending success response');
+        res.status(200).json({
+            success: true,
+            data: {
+                ...updatedOrder,
+                items: items || [],
+            },
+        });
+    } catch (err) {
+        console.error('[updateOrderViaIntermediateDriverManager] Error:', err.message, err.stack);
+        error(err.message, res);
+    }
+}
+
+
 export const updateOrderForMainHubManager = async (req, res) => {
     console.log('[updateOrderForMainHubManager] Function entry');
     try {
@@ -443,6 +622,21 @@ export const getOrdersForMainDriverManager = async (req, res) => {
                 orders = await prisma.order.findMany({
                     where: {
                         vehicleId: { in: vehicleIds }
+                    },
+                    include: {
+                        shop: {
+                            select: {
+                                name: true
+                            }
+                        },
+                        hubManager: {
+                            select: {
+                                name: true,
+                                address: true,
+                                geoLat: true,
+                                geoLng: true
+                            }
+                        }
                     }
                 });
                 console.log('[getOrdersForMainDriverManager] Orders found:', orders.length);
@@ -475,6 +669,11 @@ export const getOrdersForMainDriverManager = async (req, res) => {
 
                 return {
                     ...ord,
+                    destination: {
+                        address: ord.hubManager?.address || null,
+                        geoLat: ord.hubManager?.geoLat || null,
+                        geoLng: ord.hubManager?.geoLng || null
+                    },
                     items: items || [],
                 };
             })
@@ -512,6 +711,22 @@ export const getOrdersForIntermediateDriverManager = async (req, res) => {
                 orders = await prisma.order.findMany({
                     where: {
                         vehicleId: { in: vehicleIds }
+                    },
+                    include: {
+                        shop: {
+                            select: {
+                                name: true,
+                                address: true,
+                                geoLat: true,
+                                geoLng: true
+                            }
+                        },
+                        hubManager: {
+                            select: {
+                                name: true,
+                                address: true
+                            }
+                        }
                     }
                 });
                 console.log('[getOrdersForIntermediateDriverManager] Orders found:', orders.length);
@@ -544,6 +759,11 @@ export const getOrdersForIntermediateDriverManager = async (req, res) => {
 
                 return {
                     ...ord,
+                    destination: {
+                        address: ord.shop?.address || null,
+                        geoLat: ord.shop?.geoLat || null,
+                        geoLng: ord.shop?.geoLng || null
+                    },
                     items: items || [],
                 };
             })
