@@ -60,7 +60,14 @@ export const allocateVehicletoOrder = async (req, res) => {
 
         console.log('[allocateVehicletoOrder] Fetching order with ID:', orderId);
         const existingOrder = await prisma.order.findUnique({
-            where: { id: orderId }
+            where: { id: orderId },
+            include: {
+                orderItems: {
+                    include: {
+                        product: true
+                    }
+                }
+            }
         });
         console.log('[allocateVehicletoOrder] Order found:', !!existingOrder, 'Status:', existingOrder?.status, 'Old vehicle ID:', existingOrder?.vehicleId);
 
@@ -69,29 +76,54 @@ export const allocateVehicletoOrder = async (req, res) => {
             return error('Order not found', res, 404);
         }
 
+        // Calculate total quantity for this order
+        const orderTotalQuantity = existingOrder.orderItems.reduce((sum, item) => sum + item.quantity, 0);
+        console.log('[allocateVehicletoOrder] Order total quantity:', orderTotalQuantity);
+
+        // Handle old vehicle if order is being reassigned
         if (existingOrder.vehicleId) {
             console.log('[allocateVehicletoOrder] Order has existing vehicle, fetching old vehicle ID:', existingOrder.vehicleId);
             const oldVehicle = await prisma.vehicle.findUnique({
-                where: { id: existingOrder.vehicleId }
-            });
-            
-            if (oldVehicle) {
-                console.log('[allocateVehicletoOrder] Setting old vehicle to available, ID:', oldVehicle.id);
-                await prisma.vehicle.update({
-                    where: { id: oldVehicle.id },
-                    data: {
-                        status: 'available',
-                        updatedAt: new Date()
+                where: { id: existingOrder.vehicleId },
+                include: {
+                    orders: {
+                        include: {
+                            orderItems: true
+                        }
                     }
-                });
-                console.log('[allocateVehicletoOrder] Old vehicle status updated to available');
-                
-                if (oldVehicle.drivermanagerId) {
-                    console.log('[allocateVehicletoOrder] Old vehicle has driver manager, fetching driver manager ID:', oldVehicle.drivermanagerId);
+                }
+            });
+
+            if (oldVehicle) {
+                // Calculate remaining capacity after removing this order
+                const oldVehicleUsedCapacity = oldVehicle.orders
+                    .filter(o => o.id !== orderId)
+                    .reduce((sum, order) => {
+                        const orderQty = order.orderItems.reduce((qtySum, item) => qtySum + item.quantity, 0);
+                        return sum + orderQty;
+                    }, 0);
+
+                console.log('[allocateVehicletoOrder] Old vehicle used capacity after removal:', oldVehicleUsedCapacity, '/', oldVehicle.capacity);
+
+                // If old vehicle will have available capacity, set it to available
+                if (oldVehicleUsedCapacity < oldVehicle.capacity) {
+                    console.log('[allocateVehicletoOrder] Setting old vehicle to available, ID:', oldVehicle.id);
+                    await prisma.vehicle.update({
+                        where: { id: oldVehicle.id },
+                        data: {
+                            status: 'available',
+                            updatedAt: new Date()
+                        }
+                    });
+                    console.log('[allocateVehicletoOrder] Old vehicle status updated to available');
+                }
+
+                if (oldVehicle.drivermanagerId && oldVehicleUsedCapacity === 0) {
+                    console.log('[allocateVehicletoOrder] Old vehicle now empty, fetching driver manager ID:', oldVehicle.drivermanagerId);
                     const oldDriverManager = await prisma.driverManager.findUnique({
                         where: { id: oldVehicle.drivermanagerId }
                     });
-                    
+
                     if (oldDriverManager) {
                         console.log('[allocateVehicletoOrder] Setting old driver manager to available, ID:', oldDriverManager.id);
                         await prisma.driverManager.update({
@@ -109,7 +141,14 @@ export const allocateVehicletoOrder = async (req, res) => {
 
         console.log('[allocateVehicletoOrder] Fetching vehicle with ID:', vehicleId);
         const existingVehicle = await prisma.vehicle.findUnique({
-            where: { id: vehicleId }
+            where: { id: vehicleId },
+            include: {
+                orders: {
+                    include: {
+                        orderItems: true
+                    }
+                }
+            }
         });
         console.log('[allocateVehicletoOrder] Vehicle found:', !!existingVehicle, 'Status:', existingVehicle?.status, 'Driver manager ID:', existingVehicle?.drivermanagerId);
 
@@ -118,9 +157,30 @@ export const allocateVehicletoOrder = async (req, res) => {
             return error('Vehicle not found', res, 404);
         }
 
-        if (existingVehicle.status !== 'available') {
-            console.log('[allocateVehicletoOrder] Vehicle is not available, status:', existingVehicle.status);
-            return error('Vehicle is occupied', res, 400);
+        const currentUsedCapacity = existingVehicle.orders
+            .filter(o => o.id !== orderId)
+            .reduce((sum, order) => {
+                const orderQty = order.orderItems.reduce((qtySum, item) => qtySum + item.quantity, 0);
+                return sum + orderQty;
+            }, 0);
+        console.log('[allocateVehicletoOrder] Vehicle current used capacity:', currentUsedCapacity, '/', existingVehicle.capacity);
+
+        // Check capacity based on manager category
+        if (manager.hubmanagerCategory === 'intermediate') {
+            // For intermediate hub managers, allow multiple orders until capacity is full
+            const remainingCapacity = existingVehicle.capacity - currentUsedCapacity;
+            console.log('[allocateVehicletoOrder] Intermediate manager - remaining capacity:', remainingCapacity);
+
+            if (orderTotalQuantity > remainingCapacity) {
+                console.log('[allocateVehicletoOrder] Order quantity exceeds vehicle remaining capacity');
+                return error(`Vehicle has insufficient capacity. Required: ${orderTotalQuantity}, Available: ${remainingCapacity}`, res, 400);
+            }
+        } else {
+            // For main hub managers, only allow if vehicle is available (current behavior)
+            if (existingVehicle.status !== 'available') {
+                console.log('[allocateVehicletoOrder] Vehicle is not available, status:', existingVehicle.status);
+                return error('Vehicle is occupied', res, 400);
+            }
         }
 
         if (existingVehicle.drivermanagerId) {
@@ -146,11 +206,25 @@ export const allocateVehicletoOrder = async (req, res) => {
             }
         }
 
-        console.log('[allocateVehicletoOrder] Updating vehicle status to occupied');
+        // Calculate new total capacity after adding this order
+        const newUsedCapacity = currentUsedCapacity + orderTotalQuantity;
+        const willBeFull = newUsedCapacity >= existingVehicle.capacity;
+
+        console.log('[allocateVehicletoOrder] New used capacity will be:', newUsedCapacity, 'Vehicle will be full:', willBeFull);
+
+        // Update vehicle status based on capacity and manager category
+        let vehicleStatus = existingVehicle.status;
+        if (manager.hubmanagerCategory === 'intermediate') {
+            vehicleStatus = willBeFull ? 'occupied' : 'available';
+        } else {
+            vehicleStatus = 'occupied';
+        }
+
+        console.log('[allocateVehicletoOrder] Updating vehicle status to', vehicleStatus);
         await prisma.vehicle.update({
             where: { id: vehicleId },
             data: {
-                status: 'occupied',
+                status: vehicleStatus,
                 updatedAt: new Date()
             }
         });
@@ -177,6 +251,12 @@ export const allocateVehicletoOrder = async (req, res) => {
         res.status(200).json({
             success: true,
             data: updatedOrder,
+            vehicleCapacityInfo: {
+                totalCapacity: existingVehicle.capacity,
+                usedCapacity: newUsedCapacity,
+                remainingCapacity: existingVehicle.capacity - newUsedCapacity,
+                isFull: willBeFull
+            }
         });
     } catch (err) {
         console.error('[allocateVehicletoOrder] Error:', err.message, err.stack);
