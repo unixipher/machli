@@ -25,6 +25,7 @@ router.post("/createDriverManager", authController.createDriverManager)
 
 // Public Routes
 router.get("/getAllHubManagers", authController.getAllHubManagers)
+router.get("/getAllIntermediateHubManagers", authController.getAllIntermediateHubManagers)
 
 //Intermediate Hub Manager Routes
 router.post("/createShop", authenticateIntermediateHubManager, orderController.createShop)

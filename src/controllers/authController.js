@@ -432,3 +432,25 @@ export const getAllHubManagers = async (req, res) => {
         error(err.message, res);
     }
 }
+
+export const getAllIntermediateHubManagers = async (req, res) => {
+    console.log('[getAllIntermediateHubManagers] Function entry');
+    try {
+        console.log('[getAllIntermediateHubManagers] Fetching all intermediate hub managers');
+        const managers = await prisma.hubManager.findMany({
+            where: {
+                hubmanagerCategory: 'intermediate'
+            }
+        });
+        console.log('[getAllIntermediateHubManagers] Hub managers found:', managers.length);
+        
+        console.log('[getAllIntermediateHubManagers] Sending success response');
+        res.status(200).json({
+            success: true,
+            data: managers
+        });
+    } catch (err) {
+        console.error('[getAllIntermediateHubManagers] Error:', err.message, err.stack);
+        error(err.message, res);
+    }
+}
