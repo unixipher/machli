@@ -1,3 +1,4 @@
+import { ca } from 'zod/locales';
 import prisma from '../lib/prisma.js';
 import { error } from '../middleware/middleware.js';
 
@@ -154,7 +155,7 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
         const ordersWithProducts = await Promise.all(
             (orders || []).map(async (ord, index) => {
                 console.log(`[getAllOrdersForIntermediateHubManager] Fetching items for order ${index + 1}/${orders.length}, orderId:`, ord.id);
-                
+
                 let items = [];
                 try {
                     items = await prisma.orderItem.findMany({
@@ -225,7 +226,7 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
                 const orders = await prisma.order.findMany({
                     where: { hubmanagerId: intermediateManager.id }
                 });
-                
+
                 console.log(`[getAllOrdersForMainHubManager] Orders found for manager ${intermediateManager.id}:`, orders.length);
 
                 const ordersWithProducts = await Promise.all(
@@ -243,7 +244,7 @@ export const getAllOrdersForMainHubManager = async (req, res) => {
                                 }
                             }
                         });
-                        
+
                         console.log(`[getAllOrdersForMainHubManager] Items fetched for order ${ord.id}:`, items.length);
 
                         return {
@@ -852,7 +853,7 @@ export const getAllDriverManagerUnderMainHubManager = async (req, res) => {
         } else {
             console.log('[getAllDriverManagerUnderMainHubManager] No intermediate managers found');
         }
-        
+
         console.log('[getAllDriverManagerUnderMainHubManager] Sending success response');
         res.status(200).json({
             success: true,
@@ -939,34 +940,28 @@ export const getAllVehicleUnderMainHubManager = async (req, res) => {
         const manager = req.manager;
         console.log('[getAllVehicleUnderMainHubManager] Manager ID:', manager?.id);
 
-        console.log('[getAllVehicleUnderMainHubManager] Fetching intermediate managers');
-        const intermediateManagers = await prisma.hubManager.findMany({
-            where: { mainHubManagerId: manager.id },
-            select: { id: true }
-        });
-        const intermediateManagerIds = intermediateManagers.map(m => m.id);
-        console.log('[getAllVehicleUnderMainHubManager] Intermediate manager IDs:', intermediateManagerIds);
+        console.log('[getAllVehicleUnderMainHubManager] Fetching mainhub managers')
 
-        let vehicles = [];
-        if (intermediateManagerIds.length > 0) {
-            console.log('[getAllVehicleUnderMainHubManager] Fetching vehicles');
-            vehicles = await prisma.vehicle.findMany({
-                where: {
-                    hubmanagerId: { in: intermediateManagerIds }
-                }
-            });
-            console.log('[getAllVehicleUnderMainHubManager] Vehicles found:', vehicles.length);
-        } else {
-            console.log('[getAllVehicleUnderMainHubManager] No intermediate managers found');
-        }
-        
-        console.log('[getAllVehicleUnderMainHubManager] Sending success response');
-        res.status(200).json({
+
+        console.log('[getAllVehicleUnderMainHubManager] Fetching vehicles');
+        const vehicles = await prisma.vehicle.findMany({
+            where: {
+                hubmanagerId: manager.id,
+            },
+        });
+
+        console.log('[getAllVehicleUnderMainHubManager] Vehicles found:', vehicles.length);
+
+        return res.status(200).json({
             success: true,
             data: vehicles,
         });
     } catch (err) {
-        console.error('[getAllVehicleUnderMainHubManager] Error:', err.message, err.stack);
-        error(err.message, res);
+        console.error(
+            '[getAllVehicleUnderMainHubManager] Error:',
+            err.message,
+            err.stack
+        );
+        return error(err.message, res);
     }
-}
+};
