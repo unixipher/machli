@@ -305,66 +305,55 @@ export const updateOrderForIntermediateHubManager = async (req, res) => {
 }
 
 export const updateOrderViaMainDriverManager = async (req, res) => {
-    console.log('[updateOrderViaMainDriverManager] Function entry');
     try {
         const driver = req.driver;
         const { orderId, status, metadata } = req.body;
-        console.log('[updateOrderViaMainDriverManager] Driver ID:', driver?.id);
-        console.log('[updateOrderViaMainDriverManager] Request body:', { orderId, status, hasMetadata: !!metadata });
 
         if (!orderId) {
-            console.log('[updateOrderViaMainDriverManager] Validation failed: orderId is required');
             return error('orderId is required', res, 400);
         }
 
-        console.log('[updateOrderViaMainDriverManager] Fetching order with ID:', orderId);
         const existingOrder = await prisma.order.findUnique({
             where: { id: orderId }
         });
-        console.log('[updateOrderViaMainDriverManager] Order found:', !!existingOrder);
 
         if (!existingOrder) {
-            console.log('[updateOrderViaMainDriverManager] Order not found');
             return error('Order not found', res, 404);
         }
 
-        console.log('[updateOrderViaMainDriverManager] Fetching vehicles for driver ID:', driver.id);
         const vehicles = await prisma.vehicle.findMany({
             where: { drivermanagerId: driver.id },
             select: { id: true }
         });
         const vehicleIds = vehicles.map(v => v.id);
-        console.log('[updateOrderViaMainDriverManager] Driver vehicles:', vehicleIds);
-        console.log('[updateOrderViaMainDriverManager] Order vehicleId:', existingOrder.vehicleId);
 
         if (!existingOrder.vehicleId || !vehicleIds.includes(existingOrder.vehicleId)) {
-            console.log('[updateOrderViaMainDriverManager] Permission denied: Order does not belong to driver\'s vehicles');
             return error('You do not have permission to update this order', res, 403);
         }
 
         if (status) {
             const allowedStatuses = ['in_transit', 'in_hub'];
             if (!allowedStatuses.includes(status)) {
-                console.log('[updateOrderViaMainDriverManager] Validation failed: Invalid status for main driver');
                 return error('Main driver managers can only update order status to: in_transit, in_hub', res, 400);
             }
         }
 
-        console.log('[updateOrderViaMainDriverManager] Preparing update data');
         const updateData = {};
-        if (status) updateData.status = status;
+        if (status) {
+            updateData.status = status;
+            if (status === 'in_hub') {
+                updateData.hubmanagerId = null;
+                updateData.vehicleId = null;
+            }
+        }
         if (metadata) updateData.metadata = metadata;
         updateData.updatedAt = new Date();
-        console.log('[updateOrderViaMainDriverManager] Update data:', updateData);
 
-        console.log('[updateOrderViaMainDriverManager] Updating order');
         const updatedOrder = await prisma.order.update({
             where: { id: orderId },
             data: updateData
         });
-        console.log('[updateOrderViaMainDriverManager] Order updated successfully');
 
-        console.log('[updateOrderViaMainDriverManager] Fetching order items');
         const items = await prisma.orderItem.findMany({
             where: { orderId: updatedOrder.id },
             include: {
@@ -377,9 +366,7 @@ export const updateOrderViaMainDriverManager = async (req, res) => {
                 }
             }
         });
-        console.log('[updateOrderViaMainDriverManager] Items fetched:', items.length);
 
-        console.log('[updateOrderViaMainDriverManager] Sending success response');
         res.status(200).json({
             success: true,
             data: {
@@ -388,7 +375,6 @@ export const updateOrderViaMainDriverManager = async (req, res) => {
             },
         });
     } catch (err) {
-        console.error('[updateOrderViaMainDriverManager] Error:', err.message, err.stack);
         error(err.message, res);
     }
 }
