@@ -119,78 +119,15 @@ export const createOrder = async (req, res) => {
 export const getAllOrdersForIntermediateHubManager = async (req, res) => {
     try {
         const manager = req.manager;
-        console.log('[getAllOrdersForIntermediateHubManager] Manager:', { id: manager.id, category: manager.hubmanagerCategory });
-        let orders;
-
-        if (manager.hubmanagerCategory === 'intermediate') {
-            console.log('[getAllOrdersForIntermediateHubManager] Fetching orders for intermediate manager');
-            orders = await prisma.order.findMany({
-                where: { hubmanagerId: manager.id }
-            });
-            console.log('[getAllOrdersForIntermediateHubManager] Orders fetched:', orders.length);
-        } else {
-            console.log('[getAllOrdersForIntermediateHubManager] Fetching intermediate managers under main manager');
-            const intermediateManagers = await prisma.hubManager.findMany({
-                where: { mainHubManagerId: manager.id },
-                select: { id: true }
-            });
-
-            const intermediateManagerIds = intermediateManagers.map(m => m.id);
-            console.log('[getAllOrdersForIntermediateHubManager] Intermediate manager IDs:', intermediateManagerIds);
-
-            if (intermediateManagerIds.length > 0) {
-                orders = await prisma.order.findMany({
-                    where: {
-                        hubmanagerId: { in: intermediateManagerIds }
-                    }
-                });
-                console.log('[getAllOrdersForIntermediateHubManager] Orders fetched:', orders.length);
-            } else {
-                orders = [];
-                console.log('[getAllOrdersForIntermediateHubManager] No intermediate managers found');
-            }
-        }
-
-        console.log('[getAllOrdersForIntermediateHubManager] Fetching products for', orders.length, 'orders');
-        const ordersWithProducts = await Promise.all(
-            (orders || []).map(async (ord, index) => {
-                console.log(`[getAllOrdersForIntermediateHubManager] Fetching items for order ${index + 1}/${orders.length}, orderId:`, ord.id);
-
-                let items = [];
-                try {
-                    items = await prisma.orderItem.findMany({
-                        where: { orderId: ord.id },
-                        include: {
-                            product: {
-                                select: {
-                                    title: true,
-                                    description: true,
-                                    price: true
-                                }
-                            }
-                        }
-                    });
-                    console.log(`[getAllOrdersForIntermediateHubManager] Items fetched for order ${ord.id}:`, items ? items.length : 'null/undefined');
-                } catch (itemError) {
-                    console.error(`[getAllOrdersForIntermediateHubManager] Error fetching items for order ${ord.id}:`, itemError.message);
-                    items = [];
-                }
-
-                return {
-                    ...ord,
-                    items: items || [],
-                };
-            })
-        );
-
-        console.log('[getAllOrdersForIntermediateHubManager] Sending response with', ordersWithProducts.length, 'orders');
+        const orders = await prisma.order.findMany({
+            where: { hubmanagerId: manager.id }
+        });
         res.status(200).json({
             success: true,
-            data: ordersWithProducts,
+            data: orders,
         });
     } catch (err) {
-        console.error('[getAllOrdersForIntermediateHubManager] Error:', err.message);
-        error(err.message, res);
+        console.error('[getAllOrdersForIntermediateHubManager] Error:', err.message, err.stack);
     }
 }
 
