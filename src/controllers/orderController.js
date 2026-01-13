@@ -342,7 +342,7 @@ export const updateOrderViaMainDriverManager = async (req, res) => {
         if (status) {
             updateData.status = status;
             if (status === 'in_hub') {
-                updateData.hubmanagerId = null;
+                updateData.hubManagerId = null;
                 updateData.vehicleId = null;
             }
         }
