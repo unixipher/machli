@@ -828,17 +828,11 @@ export const getAllDriverManagerUnderIntermediateHubManager = async (req, res) =
 }
 
 export const getAllDriverManagerUnderMainHubManager = async (req, res) => {
-    console.log('[getAllDriverManagerUnderMainHubManager] Function entry');
     try {
         const manager = req.manager;
-        console.log('[getAllDriverManagerUnderMainHubManager] Manager ID:', manager?.id);
-
-        console.log('[getAllDriverManagerUnderMainHubManager] Fetching main driver managers');
         const drivers = await prisma.driverManager.findMany({
-            where: { hubManagerId: manager.id }
+            where: { hubmanagerId: manager.id }
         });
-        console.log('[getAllDriverManagerUnderMainHubManager] Driver managers found:', drivers.length);
-        console.log('[getAllDriverManagerUnderMainHubManager] Sending success response');
         res.status(200).json({
             success: true,
             data: drivers,
