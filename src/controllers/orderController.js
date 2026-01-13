@@ -120,14 +120,38 @@ export const getAllOrdersForIntermediateHubManager = async (req, res) => {
     try {
         const manager = req.manager;
         const orders = await prisma.order.findMany({
-            where: { hubmanagerId: manager.id }
+            where: { hubmanagerId: manager.id },
         });
+
+        const ordersWithItems = await Promise.all(
+            (orders || []).map(async (order) => {
+                const items = await prisma.orderItem.findMany({
+                    where: { orderId: order.id },
+                    include: {
+                        product: {
+                            select: {
+                                title: true,
+                                description: true,
+                                price: true
+                            }
+                        }
+                    }
+                });
+
+                return {
+                    ...order,
+                    items: items || [],
+                };
+            })
+        );
+
         res.status(200).json({
             success: true,
-            data: orders,
+            data: ordersWithItems,
         });
     } catch (err) {
         console.error('[getAllOrdersForIntermediateHubManager] Error:', err.message, err.stack);
+        error(err.message, res);
     }
 }
 
