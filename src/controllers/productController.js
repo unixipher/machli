@@ -3,8 +3,8 @@ import { error } from '../middleware/middleware.js';
 
 export const createProduct = async (req, res) => {
     console.log('[createProduct] Function entry');
-    const { title, description, price, metadata, quantity } = req.body;
-    console.log('[createProduct] Request body:', { title, description, price, hasMetadata: !!metadata, quantity });
+    const { title, description, price, metadata, quantity, avgWeight, shopId } = req.body;
+    console.log('[createProduct] Request body:', { title, description, price, hasMetadata: !!metadata, quantity, avgWeight, shopId });
     console.log('[createProduct] Hub manager ID:', req.manager?.id);
     try {
         if (!title || !description || price === undefined || quantity === undefined) {
@@ -20,7 +20,9 @@ export const createProduct = async (req, res) => {
                 price,
                 hubmanagerId: req.manager.id,
                 metadata: metadata || null,
-                quantity
+                quantity,
+                avgWeight: avgWeight ? parseFloat(avgWeight) : 0,
+                shopId: shopId ? parseInt(shopId) : null
             }
         });
         console.log('[createProduct] Product created, ID:', newProduct.id);
@@ -39,9 +41,9 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
     console.log('[updateProduct] Function entry');
     const { id } = req.params;
-    const { title, description, price, metadata, quantity } = req.body;
+    const { title, description, price, metadata, quantity, avgWeight, shopId } = req.body;
     console.log('[updateProduct] Request params:', { id });
-    console.log('[updateProduct] Request body:', { title, description, price, hasMetadata: !!metadata, quantity });
+    console.log('[updateProduct] Request body:', { title, description, price, hasMetadata: !!metadata, quantity, avgWeight, shopId });
     console.log('[updateProduct] Hub manager ID:', req.manager?.id);
     try {
         if (!id) {
@@ -60,7 +62,9 @@ export const updateProduct = async (req, res) => {
                 description,
                 price,
                 metadata: metadata || null,
-                quantity
+                quantity,
+                avgWeight: avgWeight ? parseFloat(avgWeight) : undefined,
+                shopId: shopId ? parseInt(shopId) : undefined
             }
         });
 

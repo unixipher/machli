@@ -3,9 +3,9 @@ import { error } from '../middleware/middleware.js';
 
 export const createVehicle = async (req, res) => {
     console.log('[createVehicle] Function entry');
-    const { number, model, capacity } = req.body;
+    const { number, model, capacity, metadata } = req.body;
     const hubmanagerId = req.manager.id;
-    console.log('[createVehicle] Request body:', { number, model, capacity, hubmanagerId });
+    console.log('[createVehicle] Request body:', { number, model, capacity, hubmanagerId, metadata });
 
     if (!number || !model || !capacity || !hubmanagerId) {
         console.log('[createVehicle] Validation failed: Missing required fields');
@@ -19,7 +19,8 @@ export const createVehicle = async (req, res) => {
                 model,
                 status: 'available',
                 capacity: parseFloat(capacity),
-                hubmanagerId: parseInt(hubmanagerId)
+                hubmanagerId: parseInt(hubmanagerId),
+                metadata: metadata || {}
             }
         });
         console.log('[createVehicle] Vehicle created, ID:', newVehicle.id);
@@ -353,6 +354,127 @@ export const allocateDriverManagertoVehicle = async (req, res) => {
         });
     } catch (err) {
         console.error('[allocateDriverManagertoVehicle] Error:', err.message, err.stack);
+        error(err.message, res);
+    }
+}
+
+export const getAllVehicles = async (req, res) => {
+    console.log('[getAllVehicles] Function entry');
+    try {
+        const hubmanagerId = req.manager.id;
+        console.log('[getAllVehicles] Fetching vehicles for hub manager:', hubmanagerId);
+
+        const vehicles = await prisma.vehicle.findMany({
+            where: { hubmanagerId: parseInt(hubmanagerId) },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        console.log('[getAllVehicles] Vehicles found:', vehicles.length);
+        res.status(200).json({
+            success: true,
+            data: vehicles
+        });
+    } catch (err) {
+        console.error('[getAllVehicles] Error:', err.message);
+        error(err.message, res);
+    }
+}
+
+export const getVehicleById = async (req, res) => {
+    console.log('[getVehicleById] Function entry');
+    try {
+        const { id } = req.params;
+        console.log('[getVehicleById] Fetching vehicle with ID:', id);
+
+        const vehicle = await prisma.vehicle.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                driverManager: true,
+                Order: true
+            }
+        });
+
+        if (!vehicle) {
+            console.log('[getVehicleById] Vehicle not found');
+            return error('Vehicle not found', res, 404);
+        }
+
+        console.log('[getVehicleById] Vehicle found');
+        res.status(200).json({
+            success: true,
+            data: vehicle
+        });
+    } catch (err) {
+        console.error('[getVehicleById] Error:', err.message);
+        error(err.message, res);
+    }
+}
+
+export const updateVehicle = async (req, res) => {
+    console.log('[updateVehicle] Function entry');
+    try {
+        const { id } = req.params;
+        const { number, model, capacity, status, metadata } = req.body;
+        console.log('[updateVehicle] Request body:', { id, number, model, capacity, status, metadata });
+
+        const existingVehicle = await prisma.vehicle.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!existingVehicle) {
+            return error('Vehicle not found', res, 404);
+        }
+
+        const updatedVehicle = await prisma.vehicle.update({
+            where: { id: parseInt(id) },
+            data: {
+                number: number || existingVehicle.number,
+                model: model || existingVehicle.model,
+                capacity: capacity ? parseFloat(capacity) : existingVehicle.capacity,
+                status: status || existingVehicle.status,
+                metadata: metadata || existingVehicle.metadata
+            }
+        });
+
+        console.log('[updateVehicle] Vehicle updated successfully');
+        res.status(200).json({
+            success: true,
+            data: updatedVehicle
+        });
+    } catch (err) {
+        console.error('[updateVehicle] Error:', err.message);
+        if (err.code === 'P2002') {
+            return error('Vehicle number already exists', res, 400);
+        }
+        error(err.message, res);
+    }
+}
+
+export const deleteVehicle = async (req, res) => {
+    console.log('[deleteVehicle] Function entry');
+    try {
+        const { id } = req.params;
+        console.log('[deleteVehicle] Deleting vehicle with ID:', id);
+
+        const existingVehicle = await prisma.vehicle.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!existingVehicle) {
+            return error('Vehicle not found', res, 404);
+        }
+
+        await prisma.vehicle.delete({
+            where: { id: parseInt(id) }
+        });
+
+        console.log('[deleteVehicle] Vehicle deleted successfully');
+        res.status(200).json({
+            success: true,
+            message: 'Vehicle deleted successfully'
+        });
+    } catch (err) {
+        console.error('[deleteVehicle] Error:', err.message);
         error(err.message, res);
     }
 }

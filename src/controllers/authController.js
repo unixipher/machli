@@ -47,7 +47,7 @@ export const requestOTP = async (req, res) => {
     console.log('[requestOTP] Function entry');
     const { email } = req.body;
     console.log('[requestOTP] Request body:', { email });
-    
+
     if (!email) {
         console.log('[requestOTP] Validation failed: Email is required');
         return error('Email is required', res, 400);
@@ -201,19 +201,19 @@ export const verifyOTP = async (req, res) => {
 
 export const createHubManager = async (req, res) => {
     console.log('[createHubManager] Function entry');
-    const { name, email, phone, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng } = req.body;
-    console.log('[createHubManager] Request body:', { name, email, phone, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng });
-    
+    const { name, email, phone, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng, farmId } = req.body;
+    console.log('[createHubManager] Request body:', { name, email, phone, hubmanagerCategory, mainHubManagerId, address, geoLat, geoLng, farmId });
+
     if (!name || !email || !phone || !hubmanagerCategory || !address || !geoLat || !geoLng) {
         console.log('[createHubManager] Validation failed: Missing required fields');
         return error('name, email, phone, hubmanagerCategory, address, geoLat, and geoLng are required', res, 400);
     }
-    
+
     if (hubmanagerCategory === 'intermediate' && !mainHubManagerId) {
         console.log('[createHubManager] Validation failed: mainHubManagerId required for intermediate');
         return error('mainHubManagerId is required for intermediate hub managers', res, 400);
     }
-    
+
     if (hubmanagerCategory === 'main' && mainHubManagerId) {
         console.log('[createHubManager] Validation failed: mainHubManagerId not allowed for main');
         return error('mainHubManagerId should not be provided for main hub managers', res, 400);
@@ -277,6 +277,19 @@ export const createHubManager = async (req, res) => {
             }
         }
 
+        if (farmId) {
+            console.log('[createHubManager] Validating farm ID:', farmId);
+            const farm = await prisma.farm.findUnique({
+                where: { id: parseInt(farmId) }
+            });
+            console.log('[createHubManager] Farm found:', !!farm);
+
+            if (!farm) {
+                console.log('[createHubManager] Farm not found:', farmId);
+                return error(`Farm with ID ${farmId} does not exist`, res, 400);
+            }
+        }
+
         console.log('[createHubManager] Generating authentication token');
         const token = crypto.randomBytes(32).toString('hex');
 
@@ -291,7 +304,8 @@ export const createHubManager = async (req, res) => {
                 geoLat,
                 geoLng,
                 hubmanagerCategory,
-                mainHubManagerId: mainHubManagerId || null
+                mainHubManagerId: mainHubManagerId || null,
+                farmId: farmId ? parseInt(farmId) : null
             }
         });
         console.log('[createHubManager] Hub manager created, ID:', newHubManager.id);
@@ -312,7 +326,7 @@ export const createDriverManager = async (req, res) => {
     console.log('[createDriverManager] Function entry');
     const { name, email, phone, category, address, geoLat, geoLng, hubmanagerId } = req.body;
     console.log('[createDriverManager] Request body:', { name, email, phone, category, address, geoLat, geoLng, hubmanagerId });
-    
+
     if (!name || !email || !phone || !category || !address || !geoLat || !geoLng || !hubmanagerId) {
         console.log('[createDriverManager] Validation failed: Missing required fields');
         return error('name, email, phone, category, address, geoLat, geoLng, and hubmanagerId are required', res, 400);
@@ -421,7 +435,7 @@ export const getAllHubManagers = async (req, res) => {
             }
         });
         console.log('[getAllHubManagers] Hub managers found:', managers.length);
-        
+
         console.log('[getAllHubManagers] Sending success response');
         res.status(200).json({
             success: true,
@@ -443,7 +457,7 @@ export const getAllIntermediateHubManagers = async (req, res) => {
             }
         });
         console.log('[getAllIntermediateHubManagers] Hub managers found:', managers.length);
-        
+
         console.log('[getAllIntermediateHubManagers] Sending success response');
         res.status(200).json({
             success: true,

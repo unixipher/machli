@@ -23,7 +23,8 @@ export const createShop = async (req, res) => {
                 hubmanagerId: manager.id,
                 address,
                 geoLat,
-                geoLng
+                geoLng,
+                avgBuySize: req.body.avgBuySize ? parseFloat(req.body.avgBuySize) : 0
             }
         });
         console.log('[createShop] Shop created, ID:', newShop.id);
@@ -265,6 +266,7 @@ export const updateOrderForIntermediateHubManager = async (req, res) => {
         const updateData = {};
         if (status) updateData.status = status;
         if (metadata) updateData.metadata = metadata;
+        if (req.body.deliveryDate) updateData.deliveryDate = new Date(req.body.deliveryDate);
         updateData.updatedAt = new Date();
         console.log('[updateOrderForIntermediateHubManager] Update data:', updateData);
 
@@ -345,13 +347,6 @@ export const updateOrderViaMainDriverManager = async (req, res) => {
                 updateData.vehicle = { disconnect: true };
             }
         }
-        if (metadata) updateData.metadata = metadata;
-        updateData.updatedAt = new Date();
-
-        const updatedOrder = await prisma.order.update({
-            where: { id: orderId },
-            data: updateData
-        });
 
         const items = await prisma.orderItem.findMany({
             where: { orderId: updatedOrder.id },
@@ -428,6 +423,7 @@ export const updateOrderViaIntermediateDriverManager = async (req, res) => {
         const updateData = {};
         if (status) updateData.status = status;
         if (metadata) updateData.metadata = metadata;
+        if (req.body.deliveryDate) updateData.deliveryDate = new Date(req.body.deliveryDate);
         updateData.updatedAt = new Date();
         console.log('[updateOrderViaIntermediateDriverManager] Update data:', updateData);
 
@@ -509,6 +505,7 @@ export const updateOrderForMainHubManager = async (req, res) => {
         const updateData = {};
         if (status) updateData.status = status;
         if (metadata) updateData.metadata = metadata;
+        if (req.body.deliveryDate) updateData.deliveryDate = new Date(req.body.deliveryDate);
         updateData.updatedAt = new Date();
         console.log('[updateOrderForMainHubManager] Update data:', updateData);
 

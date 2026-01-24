@@ -3,6 +3,7 @@ import * as authController from "../controllers/authController.js";
 import * as orderController from "../controllers/orderController.js";
 import * as productController from "../controllers/productController.js";
 import * as vehicleController from "../controllers/vehicleController.js";
+import * as farmController from "../controllers/farmController.js";
 import { authenticateIntermediateHubManager, authenticateMainHubManager, authenticateMainDriverManager, authenticateIntermediateDriverManager } from "../middleware/middleware.js";
 const router = Router();
 
@@ -14,6 +15,13 @@ router.get("/", (req, res) => {
         timestamp: Date.now()
     });
 });
+
+// Farm Routes
+router.post("/createFarm", farmController.createFarm);
+router.get("/getAllFarms", farmController.getAllFarms);
+router.get("/getFarmById/:id", farmController.getFarmById);
+router.put("/updateFarm/:id", farmController.updateFarm);
+router.delete("/deleteFarm/:id", farmController.deleteFarm);
 
 // Authentication Routes
 router.post("/auth/request-otp", authController.requestOTP)
@@ -43,6 +51,11 @@ router.post("/createProduct", authenticateIntermediateHubManager, productControl
 router.post("/allocateVehicletoOrderViaIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.allocateVehicletoOrder)
 router.post("/allocateDriverManagertoVehicleViaIntermediateHubManager", authenticateIntermediateHubManager, vehicleController.allocateDriverManagertoVehicle)
 
+// Vehicle CRUD for Intermediate Hub Manager
+router.get("/getVehicleById/:id", authenticateIntermediateHubManager, vehicleController.getVehicleById)
+router.put("/updateVehicle/:id", authenticateIntermediateHubManager, vehicleController.updateVehicle)
+router.delete("/deleteVehicle/:id", authenticateIntermediateHubManager, vehicleController.deleteVehicle)
+
 //Main Hub Manager Routes
 router.get("/getAllOrdersForMainHubManager", authenticateMainHubManager, orderController.getAllOrdersForMainHubManager)
 router.get("/getMainHubManagerProfileInfo", authenticateMainHubManager, authController.getHubManagerProfileInfo)
@@ -53,6 +66,11 @@ router.get("/getAllVehicleUnderMainHubManager", authenticateMainHubManager, orde
 router.put("/updateOrderForMainHubManager", authenticateMainHubManager, orderController.updateOrderForMainHubManager)
 router.post("/allocateVehicletoOrderViaMainHubManager", authenticateMainHubManager, vehicleController.allocateVehicletoOrder)
 router.post("/allocateDriverManagertoVehicleViaMainHubManager", authenticateMainHubManager, vehicleController.allocateDriverManagertoVehicle)
+
+// Vehicle CRUD for Main Hub Manager
+router.get("/getVehicleByIdViaMain/:id", authenticateMainHubManager, vehicleController.getVehicleById)
+router.put("/updateVehicleViaMain/:id", authenticateMainHubManager, vehicleController.updateVehicle)
+router.delete("/deleteVehicleViaMain/:id", authenticateMainHubManager, vehicleController.deleteVehicle)
 
 
 //Main Driver Manager Routes
